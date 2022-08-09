@@ -1,6 +1,6 @@
 {
   "name": "@protoplan/calculate-costs",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "",
   "main": "./lib/index.js",
   "module": "./lib/index.js",
@@ -42,7 +42,7 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hannah-hodson/calculate-costs.git"
+    "url": "git+https://github.com/hannah-jemima/protoplan-calculate-costs.git"
   },
   "license": "MIT"
 }
