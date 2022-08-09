@@ -12,6 +12,7 @@
     "lib/"
   ],
   "dependencies": {
+    "@protoplan/types": "latest",
     "@protoplan/unit-utils": "latest",
     "@types/exchange-rates-api": "^1.0.0",
     "@types/node-dijkstra": "^2.5.2",

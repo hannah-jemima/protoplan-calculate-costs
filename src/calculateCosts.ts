@@ -1,4 +1,4 @@
-import { TProtocol, TProtocolRowCosts } from "./types.js";
+import { TProtocol, TProtocolRowCosts } from "@protoplan/types";
 import { retrieveExchangeRate } from "./currency.js";
 import { TUnitConversions, TUnits } from "@protoplan/unit-utils/lib/types";
 import { getUnitConversionFactor } from "@protoplan/unit-utils";
