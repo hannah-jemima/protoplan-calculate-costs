@@ -2,16 +2,24 @@
   "name": "@protoplan/calculate-costs",
   "version": "1.0.0",
   "description": "",
-  "main": "index.ts",
+  "main": "./lib/index.js",
+  "module": "./lib/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
   },
+  "files": [
+    "lib/"
+  ],
   "dependencies": {
-    "unit-utils": "^1.0.0",
     "@types/exchange-rates-api": "^1.0.0",
     "@types/node-dijkstra": "^2.5.2",
     "exchange-rates-api": "^1.1.0",
-    "node-dijkstra": "^2.5.0"
+    "node-dijkstra": "^2.5.0",
+    "protoplan-unit-utilities": "^1.0.2"
+  },
+  "devDependencies": {
+    "typescript": "^4.7.4"
   },
   "optionalDependencies": {
     "fsevents": "2.3.2"
@@ -36,6 +44,5 @@
     "type": "git",
     "url": "git+https://github.com/hannah-hodson/calculate-costs.git"
   },
-  "author": "",
   "license": "MIT"
 }

@@ -1,7 +1,7 @@
-import { TProtocol, TProtocolRowCosts } from "./src/types";
-import { retrieveExchangeRate } from "./src/currency";
-import { TUnits, TUnitConversions } from "unit-utils/src/types";
-import { getUnitConversionFactor } from "unit-utils/index";
+import { TProtocol, TProtocolRowCosts } from "./types";
+import { retrieveExchangeRate } from "./currency";
+import { TUnitConversions, TUnits } from "protoplan-unit-utilities/lib/types";
+import { getUnitConversionFactor } from "protoplan-unit-utilities";
 
 
 export async function calculateCostsAndRepurchases(
