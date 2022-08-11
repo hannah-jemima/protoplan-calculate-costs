@@ -1,12 +1,14 @@
 {
   "name": "@protoplan/calculate-costs",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "",
   "main": "./lib/index.js",
   "module": "./lib/index.js",
   "scripts": {
-    "build": "tsc",
-    "prepublishOnly": "npm run build"
+    "build": "npm update & tsc",
+    "commit": "git add . & git commit -m 'pub'",
+    "prepublishOnly": "npm run build & npm run commit",
+    "publish": "npm publish --access public"
   },
   "files": [
     "lib/"
