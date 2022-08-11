@@ -6,7 +6,7 @@
   "module": "./lib/index.js",
   "scripts": {
     "build": "npm update & tsc",
-    "commit": "git add . & git commit -m 'pub'",
+    "commit": "git add . & git commit -m pub",
     "prepublishOnly": "npm run build & npm run commit",
     "publish": "npm publish --access public"
   },
