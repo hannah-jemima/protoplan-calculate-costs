@@ -107,19 +107,19 @@ export async function calculateCost(row: {
   deliveryPrice: number | null })
 {
   const gpbToUserCurrency = await retrieveExchangeRate('GBP', row.userCurrencyCode);
-  const domestic = row.userCountryId === row.vendorCountryId;
-  console.warn("domestic", row.userCountryId, row.vendorCountryId, domestic);
+  const sameCountry = row.userCountryId === row.vendorCountryId;
+  console.info("domestic", row.userCountryId, row.vendorCountryId, sameCountry);
   const price = row.price;
   // Amazon - shown on listing page in vendor's currency
   const deliveryPerProduct = row.deliveryPerProduct || 0;
   const freeDelivery = !deliveryPerProduct && (row.deliveryPrice === 0);
-  console.warn("freeDelivery", deliveryPerProduct, row.deliveryPrice, freeDelivery);
+  console.info("freeDelivery", deliveryPerProduct, row.deliveryPrice, freeDelivery);
   const userCurrencyCode = row.userCurrencyCode;
   const listingCurrencyCode = row.listingCurrencyCode;
   const taxPercent = (row.taxPercent !== null) ?
     row.taxPercent :
-    ((domestic || freeDelivery) ? 0 : (20 * gpbToUserCurrency));         // iHerb - Vendor-specific, on listing price in user's currency
-  console.warn("taxPercent", taxPercent);
+    ((sameCountry || freeDelivery) ? 0 : (20 * gpbToUserCurrency));         // iHerb - Vendor-specific, on listing price in user's currency
+  console.info("taxPercent", taxPercent);
   const exchangeRate = (userCurrencyCode && listingCurrencyCode && userCurrencyCode !== listingCurrencyCode) ?
     await retrieveExchangeRate(listingCurrencyCode, userCurrencyCode) :
     1;
