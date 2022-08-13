@@ -126,7 +126,7 @@ export async function calculateCost(row: {
 
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
-  const cost = (price + deliveryPerProduct) * exchangeRate * (1 + taxPercent * 0.01);
+  const cost = (price + deliveryPerProduct) * exchangeRate;// * (1 + taxPercent * 0.01);
 
   return { exchangeRate, cost };
 }
