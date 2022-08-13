@@ -8,7 +8,7 @@
     "build": "npm update & tsc",
     "commit": "git add . & git commit -m pub",
     "prepublishOnly": "npm run build & npm run commit",
-    "publish": "npm publish --access public"
+    "pub": "npm publish --access public"
   },
   "files": [
     "lib/"
