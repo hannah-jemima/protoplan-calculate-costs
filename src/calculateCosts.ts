@@ -82,7 +82,8 @@ async function calculateCostPerMonth(row: {
   listingCurrencyCode: string,
   taxPercent: number | null,
   userCountryId: number,
-  vendorCountryId: number })
+  vendorCountryId: number,
+  deliveryPrice: number | null })
 {
   // Calculate listing price with per-listing taxes & exchange rate
   const { exchangeRate, cost } = await calculateCost(row);
