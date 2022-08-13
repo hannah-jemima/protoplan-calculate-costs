@@ -107,8 +107,8 @@ export async function calculateCost(row: {
   deliveryPrice: number | null })
 {
   const gpbToUserCurrency = await retrieveExchangeRate('GBP', row.userCurrencyCode);
-  const sameCountry = row.userCountryId === row.vendorCountryId;
-  console.info("domestic", row.userCountryId, row.vendorCountryId, sameCountry);
+  const domestic = row.userCountryId === row.vendorCountryId;
+  console.info("domestic", row.userCountryId, row.vendorCountryId, domestic);
   const price = row.price;
   // Amazon - shown on listing page in vendor's currency
   const deliveryPerProduct = row.deliveryPerProduct || 0;
@@ -118,7 +118,7 @@ export async function calculateCost(row: {
   const listingCurrencyCode = row.listingCurrencyCode;
   const taxPercent = (row.taxPercent !== null) ?
     row.taxPercent :
-    ((sameCountry || freeDelivery) ? 0 : (20 * gpbToUserCurrency));         // iHerb - Vendor-specific, on listing price in user's currency
+    ((domestic || freeDelivery) ? 0 : (20 * gpbToUserCurrency));         // iHerb - Vendor-specific, on listing price in user's currency
   console.info("taxPercent", taxPercent);
   const exchangeRate = (userCurrencyCode && listingCurrencyCode && userCurrencyCode !== listingCurrencyCode) ?
     await retrieveExchangeRate(listingCurrencyCode, userCurrencyCode) :
@@ -126,7 +126,7 @@ export async function calculateCost(row: {
 
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
-  const cost = (price + deliveryPerProduct) * exchangeRate * (1 + taxPercent / 100);
+  const cost = (price + deliveryPerProduct) * exchangeRate * (1 + taxPercent * 0.01);
 
   return { exchangeRate, cost };
 }
