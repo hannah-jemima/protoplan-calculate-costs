@@ -108,15 +108,18 @@ export async function calculateCost(row: {
 {
   const gpbToUserCurrency = await retrieveExchangeRate('GBP', row.userCurrencyCode);
   const domestic = row.userCountryId === row.vendorCountryId;
+  console.log("domestic", row.userCountryId, row.vendorCountryId, domestic);
   const price = row.price;
   // Amazon - shown on listing page in vendor's currency
   const deliveryPerProduct = row.deliveryPerProduct || 0;
   const freeDelivery = !deliveryPerProduct && (row.deliveryPrice === 0);
+  console.log("freeDelivery", deliveryPerProduct, row.deliveryPrice, freeDelivery);
   const userCurrencyCode = row.userCurrencyCode;
   const listingCurrencyCode = row.listingCurrencyCode;
   const taxPercent = (row.taxPercent !== null) ?
     row.taxPercent :
     ((domestic || freeDelivery) ? 0 : (20 * gpbToUserCurrency));         // iHerb - Vendor-specific, on listing price in user's currency
+  console.log("taxPercent", taxPercent);
   const exchangeRate = (userCurrencyCode && listingCurrencyCode && userCurrencyCode !== listingCurrencyCode) ?
     await retrieveExchangeRate(listingCurrencyCode, userCurrencyCode) :
     1;
