@@ -80,7 +80,10 @@ async function calculateCostPerMonth(row: {
   deliveryPerProduct: number | null,
   userCurrencyCode: string,
   listingCurrencyCode: string,
-  taxPercent: number | null })
+  taxPercent: number | null,
+  userCountryId: number,
+  vendorCountryId: number,
+  deliveryPrice: number | null })
 {
   // Calculate listing price with per-listing taxes & exchange rate
   const { exchangeRate, cost } = await calculateCost(row);
@@ -98,14 +101,22 @@ export async function calculateCost(row: {
   deliveryPerProduct: number | null,
   userCurrencyCode: string,
   listingCurrencyCode: string,
-  taxPercent: number | null })
+  taxPercent: number | null,
+  userCountryId: number,
+  vendorCountryId: number,
+  deliveryPrice: number | null })
 {
+  const gpbToUserCurrency = await retrieveExchangeRate('GBP', row.userCurrencyCode);
+  const domestic = row.userCountryId === row.vendorCountryId;
   const price = row.price;
   // Amazon - shown on listing page in vendor's currency
-  const deliveryPerProduct = Number(row.deliveryPerProduct) || 0;
+  const deliveryPerProduct = row.deliveryPerProduct || 0;
+  const freeDelivery = !deliveryPerProduct && (row.deliveryPrice === 0);
   const userCurrencyCode = row.userCurrencyCode;
   const listingCurrencyCode = row.listingCurrencyCode;
-  const taxPercent = row.taxPercent || 0;         // iHerb - Vendor-specific, on listing price in user's currency
+  const taxPercent = (row.taxPercent !== null) ?
+    row.taxPercent :
+    ((domestic || freeDelivery) ? 0 : (20 * gpbToUserCurrency));         // iHerb - Vendor-specific, on listing price in user's currency
   const exchangeRate = (userCurrencyCode && listingCurrencyCode && userCurrencyCode !== listingCurrencyCode) ?
     await retrieveExchangeRate(listingCurrencyCode, userCurrencyCode) :
     1;
@@ -131,6 +142,7 @@ type TOrderFeeCalculationData = {
   deliveryPrice: number | null,
   basketLimit: number | null,
   cost: number,
+  deliveryPerProduct: number | null,
   baseTax: number | null,
   vendorCountryId: number,
   userCountryId: number,
@@ -147,14 +159,16 @@ export async function calculatePerOrderFeePerMonth(
 {
   // All fees shown at checkout in user's currency
   const gpbToUserCurrency = await retrieveExchangeRate('GBP', userCurrencyCode);
-  const sameCountry = data.userCountryId === data.vendorCountryId;
+  const domestic = data.userCountryId === data.vendorCountryId;
 
+  const deliveryPerProduct = data.deliveryPerProduct || 0;
   const deliveryBracket = await estimateDeliveryBracket(data, userCurrencyCode, nextDeliveryBracket);
+  const freeDelivery = !deliveryPerProduct && (deliveryBracket.price === 0);
 
   const maxListingsPerOrder = Math.floor(deliveryBracket.basketLimit / data.cost) || 1;
   const ordersPerMonth = data.listingsPerMonth / maxListingsPerOrder;
 
-  const baseTax = data.baseTax !== null ? data.baseTax : (sameCountry ? 0 : (20 * gpbToUserCurrency));
+  const baseTax = (data.baseTax !== null) ? data.baseTax : ((domestic || freeDelivery) ? 0 : (20 * gpbToUserCurrency));
 
   return (deliveryBracket.price + baseTax) * ordersPerMonth * data.quantity / data.nBundleProducts;
 }
