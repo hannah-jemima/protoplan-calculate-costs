@@ -27,7 +27,7 @@ export async function calculateCostsAndRepurchases(
       ...row,
       cost,
       listingsPerMonth,
-      costPerMonth }, row.userCurrencyCode);
+      costPerMonth });
 
     return { ...row, listingsPerMonth, repurchase, exchangeRate, cost, costPerMonth, feesPerMonth };
   }));
@@ -139,81 +139,33 @@ type TOrderFeeCalculationData = {
   listingId: number,
   quantity: number,
   nBundleProducts: number,
-  deliveryPrice: number | null,
-  basketLimit: number | null,
+  deliveryPrice: number,
+  basketLimit: number,
   cost: number,
   deliveryPerProduct: number | null,
   baseTax: number | null,
   vendorCountryId: number,
   userCountryId: number,
+  userCurrencyCode: string,
   listingsPerMonth: number,
   costPerMonth: number };
 
 // Accounting for per-order charges (delivery, base tax, customs), would it be cheaper?
-export async function calculatePerOrderFeePerMonth(
-  data: TOrderFeeCalculationData,
-  userCurrencyCode: string,
-  nextDeliveryBracket?: {
-    price: number;
-    basketLimit: number; })
+export async function calculatePerOrderFeePerMonth(data: TOrderFeeCalculationData)
 {
   // All fees shown at checkout in user's currency
-  const gpbToUserCurrency = await retrieveExchangeRate('GBP', userCurrencyCode);
+  const gpbToUserCurrency = await retrieveExchangeRate('GBP', data.userCurrencyCode);
   const domestic = data.userCountryId === data.vendorCountryId;
 
   const deliveryPerProduct = data.deliveryPerProduct || 0;
-  const deliveryBracket = await estimateDeliveryBracket(data, userCurrencyCode, nextDeliveryBracket);
-  const freeDelivery = !deliveryPerProduct && (deliveryBracket.price === 0);
+  const freeDelivery = !deliveryPerProduct && (data.deliveryPrice === 0);
 
-  const maxListingsPerOrder = Math.floor(deliveryBracket.basketLimit / data.cost) || 1;
+  const maxListingsPerOrder = Math.floor(data.basketLimit / data.cost) || 1;
   const ordersPerMonth = data.listingsPerMonth / maxListingsPerOrder;
 
   const baseTax = (data.baseTax !== null) ? data.baseTax : ((domestic || freeDelivery) ? 0 : (20 * gpbToUserCurrency));
 
-  return (deliveryBracket.price + baseTax) * ordersPerMonth * data.quantity / data.nBundleProducts;
-}
-
-async function estimateDeliveryBracket(
-  data: {
-    listingId: number,
-    deliveryPrice: number | null,
-    basketLimit: number | null,
-    cost: number,
-    vendorCountryId: number,
-    userCountryId: number },
-  userCurrencyCode: string,
-  nextDeliveryBracket?: {
-    price: number;
-    basketLimit: number; })
-{
-  const gpbToUserCurrency = await retrieveExchangeRate('GBP', userCurrencyCode);
-  const domestic = data.userCountryId === data.vendorCountryId;
-
-  let basketLimit = (data.basketLimit !== null && data.basketLimit !== undefined) ?
-    data.basketLimit :
-    (200 * gpbToUserCurrency);   // in user's currency
-
-  let price = null;
-  if(data.deliveryPrice !== null && basketLimit > data.cost)
-  {
-    price = data.deliveryPrice;
-  }
-  else
-  {
-    if(nextDeliveryBracket)
-    {
-      price = nextDeliveryBracket.price;
-      basketLimit = nextDeliveryBracket.basketLimit;
-    }
-    else
-    {
-      price =
-        (domestic ? (5 * gpbToUserCurrency) : (20 * gpbToUserCurrency)) *
-        ((data.cost > basketLimit) ? 4 : 1);
-    }
-  }
-
-  return { price, basketLimit };
+  return (data.deliveryPrice + baseTax) * ordersPerMonth * data.quantity / data.nBundleProducts;
 }
 
 export function sortProtocol(protocol: TProtocol)
