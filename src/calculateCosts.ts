@@ -108,18 +108,15 @@ export async function calculateCost(row: {
 {
   const gpbToUserCurrency = await retrieveExchangeRate('GBP', row.userCurrencyCode);
   const domestic = row.userCountryId === row.vendorCountryId;
-  console.log("domestic", row.userCountryId, row.vendorCountryId, domestic);
   const price = row.price;
   // Amazon - shown on listing page in vendor's currency
   const deliveryPerProduct = row.deliveryPerProduct || 0;
   const freeDelivery = !deliveryPerProduct && (row.deliveryPrice === 0);
-  console.log("freeDelivery", deliveryPerProduct, row.deliveryPrice, freeDelivery);
   const userCurrencyCode = row.userCurrencyCode;
   const listingCurrencyCode = row.listingCurrencyCode;
   const taxPercent = (row.taxPercent !== null) ?
     row.taxPercent :
     ((domestic || freeDelivery) ? 0 : (20 * gpbToUserCurrency));         // iHerb - Vendor-specific, on listing price in user's currency
-  console.log("taxPercent", taxPercent);
   const exchangeRate = (userCurrencyCode && listingCurrencyCode && userCurrencyCode !== listingCurrencyCode) ?
     await retrieveExchangeRate(listingCurrencyCode, userCurrencyCode) :
     1;
@@ -190,33 +187,33 @@ async function estimateDeliveryBracket(
     basketLimit: number; })
 {
   const gpbToUserCurrency = await retrieveExchangeRate('GBP', userCurrencyCode);
-  const sameCountry = data.userCountryId === data.vendorCountryId;
+  const domestic = data.userCountryId === data.vendorCountryId;
 
-  let newBasketLimit = (data.basketLimit !== null && data.basketLimit !== undefined) ?
+  let basketLimit = (data.basketLimit !== null && data.basketLimit !== undefined) ?
     data.basketLimit :
     (200 * gpbToUserCurrency);   // in user's currency
 
-  let deliveryPrice = 0;
-  if(data.deliveryPrice !== null)
+  let price = null;
+  if(data.deliveryPrice !== null && basketLimit > data.cost)
   {
-    deliveryPrice = data.deliveryPrice;
+    price = data.deliveryPrice;
   }
   else
   {
     if(nextDeliveryBracket)
     {
-      deliveryPrice = nextDeliveryBracket.price;
-      newBasketLimit = nextDeliveryBracket.basketLimit;
+      price = nextDeliveryBracket.price;
+      basketLimit = nextDeliveryBracket.basketLimit;
     }
     else
     {
-      deliveryPrice =
-        (sameCountry ? (5 * gpbToUserCurrency) : (20 * gpbToUserCurrency)) *
-        ((data.cost > newBasketLimit) ? 4 : 1);
+      price =
+        (domestic ? (5 * gpbToUserCurrency) : (20 * gpbToUserCurrency)) *
+        ((data.cost > basketLimit) ? 4 : 1);
     }
   }
 
-  return { price: deliveryPrice, basketLimit: newBasketLimit };
+  return { price, basketLimit };
 }
 
 export function sortProtocol(protocol: TProtocol)
