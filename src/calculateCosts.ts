@@ -87,6 +87,7 @@ async function calculateCostPerMonth(row: {
 {
   // Calculate listing price with per-listing taxes & exchange rate
   const { exchangeRate, cost } = await calculateCost(row);
+  console.log("exchangeRate, cost", exchangeRate, cost);
 
   let costPerMonth = (cost * row.listingsPerMonth) || 0;
 
