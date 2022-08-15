@@ -28,7 +28,6 @@ export async function calculateCostsAndRepurchases(
       cost,
       listingsPerMonth,
       costPerMonth });
-    console.log("feesPerMonth", feesPerMonth);
 
     return { ...row, listingsPerMonth, repurchase, exchangeRate, cost, costPerMonth, feesPerMonth };
   }));
@@ -90,7 +89,6 @@ async function calculateCostPerMonth(row: {
   const { exchangeRate, cost } = await calculateCost(row);
 
   let costPerMonth = (cost * row.listingsPerMonth) || 0;
-  console.log("costPerMonth", row.listingsPerMonth, costPerMonth);
 
   if(row.bundleId)
     costPerMonth *= row.quantity / row.nBundleProducts;
@@ -167,6 +165,7 @@ export async function calculatePerOrderFeePerMonth(data: TOrderFeeCalculationDat
 
   const baseTax = (data.baseTax !== null) ? data.baseTax : ((domestic || freeDelivery) ? 0 : (20 * gpbToUserCurrency));
 
+  console.log("feesPerMonth", data.deliveryPrice, baseTax, ordersPerMonth, data.quantity, data.nBundleProducts);
   return (data.deliveryPrice + baseTax) * ordersPerMonth * data.quantity / data.nBundleProducts;
 }
 
