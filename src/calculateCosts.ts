@@ -28,6 +28,7 @@ export async function calculateCostsAndRepurchases(
       cost,
       listingsPerMonth,
       costPerMonth });
+    console.log("feesPerMonth", feesPerMonth);
 
     return { ...row, listingsPerMonth, repurchase, exchangeRate, cost, costPerMonth, feesPerMonth };
   }));
@@ -87,9 +88,9 @@ async function calculateCostPerMonth(row: {
 {
   // Calculate listing price with per-listing taxes & exchange rate
   const { exchangeRate, cost } = await calculateCost(row);
-  console.log("exchangeRate, cost", exchangeRate, cost);
 
   let costPerMonth = (cost * row.listingsPerMonth) || 0;
+  console.log("costPerMonth", row.listingsPerMonth, costPerMonth);
 
   if(row.bundleId)
     costPerMonth *= row.quantity / row.nBundleProducts;
