@@ -4,8 +4,8 @@ import { TUnitConversions, TUnits } from "@protoplan/types";
 import { getUnitConversionFactor } from "@protoplan/unit-utils";
 
 
-export async function calculateCostsAndRepurchases(
-  data: TProtocolRowCosts[],
+export async function calculateCostsAndRepurchases<T>(
+  data: (T & TProtocolRowCosts)[],
   units: TUnits,
   unitConversions: TUnitConversions)
 {
@@ -151,22 +151,21 @@ type TOrderFeeCalculationData = {
   costPerMonth: number };
 
 // Accounting for per-order charges (delivery, base tax, customs), would it be cheaper?
-export async function calculatePerOrderFeePerMonth(data: TOrderFeeCalculationData)
+export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalculationData)
 {
   // All fees shown at checkout in user's currency
   const gpbToUserCurrency = await retrieveExchangeRate('GBP', data.userCurrencyCode);
   const domestic = data.userCountryId === data.vendorCountryId;
 
   const deliveryPerProduct = data.deliveryPerProduct || 0;
-  const freeDelivery = !deliveryPerProduct && (Number(data.deliveryPrice) === 0);
+  const freeDelivery = !deliveryPerProduct && (data.deliveryPrice === 0);
 
   const maxListingsPerOrder = Math.floor(data.basketLimit / data.cost) || 1;
   const ordersPerMonth = data.listingsPerMonth / maxListingsPerOrder;
 
   const baseTax = (data.baseTax !== null) ? data.baseTax : ((domestic || freeDelivery) ? 0 : (20 * gpbToUserCurrency));
 
-  console.log("feesPerMonth", Number(data.deliveryPrice), Number(baseTax), ordersPerMonth, data.quantity, data.nBundleProducts);
-  return (Number(data.deliveryPrice) + Number(baseTax)) * ordersPerMonth * data.quantity / data.nBundleProducts;
+  return (data.deliveryPrice + baseTax) * ordersPerMonth * data.quantity / data.nBundleProducts;
 }
 
 export function sortProtocol(protocol: TProtocol)
