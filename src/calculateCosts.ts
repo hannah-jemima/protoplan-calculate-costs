@@ -1,11 +1,15 @@
-import { TProtocol, TProtocolRowCosts } from "@protoplan/types";
+import {
+  TProtocol,
+  TProtocolRowCosts,
+  TUnitConversions,
+  TUnits,
+  TProtocolRowCostCalculationData } from "@protoplan/types";
 import { retrieveExchangeRate } from "./currency.js";
-import { TUnitConversions, TUnits } from "@protoplan/types";
 import { getUnitConversionFactor } from "@protoplan/unit-utils";
 
 
 export async function calculateCostsAndRepurchases<T>(
-  data: (T & TProtocolRowCosts)[],
+  data: (T & TProtocolRowCostCalculationData)[],
   units: TUnits,
   unitConversions: TUnitConversions)
 {
