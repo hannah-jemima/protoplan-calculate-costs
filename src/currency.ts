@@ -9,17 +9,17 @@ export async function retrieveExchangeRate(fromCurrencyCode: string, toCurrencyC
 
   try
   {
-    return exchangeRates()
+    return Number(exchangeRates()
       // @ts-ignore
       .setApiBaseUrl('https://api.exchangerate.host')
       .latest()
       .base(fromCurrencyCode)
       .fetch()
-      .then((rates: any) => Number(rates[toCurrencyCode]));
+      .then((rates: any) => rates[toCurrencyCode]));
   }
   catch(err)
   {
     console.log(err);
-    return null;
+    return 1;
   }
 }
