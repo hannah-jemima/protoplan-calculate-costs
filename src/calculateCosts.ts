@@ -148,7 +148,7 @@ type TOrderFeeCalculationData = {
   basketLimit: number,
   cost: number,
   deliveryPerProduct: number | null,
-  baseTax: number | null,
+  baseTax: number,
   vendorCountryId: number,
   userCountryId: number,
   userCurrencyCode: string,
@@ -168,9 +168,7 @@ export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalcula
   const maxListingsPerOrder = Math.floor(data.basketLimit / data.cost) || 1;
   const ordersPerMonth = data.listingsPerMonth / maxListingsPerOrder;
 
-  const baseTax = (data.baseTax !== null) ? data.baseTax : ((domestic || freeDelivery) ? 0 : (20 * gpbToUserCurrency));
-
-  return (data.deliveryPrice + baseTax) * ordersPerMonth * data.quantity / data.nBundleProducts;
+  return (data.deliveryPrice + data.baseTax) * ordersPerMonth * data.quantity / data.nBundleProducts;
 }
 
 export function sortProtocol(protocol: TProtocol)
