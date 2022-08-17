@@ -118,12 +118,12 @@ export async function calculateCost(row: {
   const freeDelivery = !deliveryPerProduct && (row.deliveryPrice === 0);
   const userCurrencyCode = row.userCurrencyCode;
   const listingCurrencyCode = row.listingCurrencyCode;
+  // iHerb - Vendor-specific, on listing price in user's currency
   const taxPercent = (row.taxPercent !== null) ?
     row.taxPercent :
-    ((domestic || freeDelivery) ? 0 : (20 * gpbToUserCurrency));         // iHerb - Vendor-specific, on listing price in user's currency
-  const exchangeRate = (userCurrencyCode && listingCurrencyCode && userCurrencyCode !== listingCurrencyCode) ?
-    await retrieveExchangeRate(listingCurrencyCode, userCurrencyCode) :
-    1;
+    ((domestic || freeDelivery) ? 0 : (20 * gpbToUserCurrency));
+  const exchangeRate = await retrieveExchangeRate(listingCurrencyCode, userCurrencyCode);
+  console.log("calculateCost exchangeRate", exchangeRate);
 
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
