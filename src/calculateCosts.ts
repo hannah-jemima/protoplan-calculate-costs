@@ -96,8 +96,7 @@ async function calculateCostPerMonth(row: {
   listingCurrencyCode: string,
   taxPercent: number,
   userCountryId: number,
-  vendorCountryId: number,
-  deliveryPrice: number })
+  vendorCountryId: number })
 {
   // Calculate listing price with per-listing taxes & exchange rate
   const { exchangeRate, cost } = await calculateCost(row);
@@ -117,8 +116,7 @@ export async function calculateCost(row: {
   listingCurrencyCode: string,
   taxPercent: number,
   userCountryId: number,
-  vendorCountryId: number,
-  deliveryPrice: number })
+  vendorCountryId: number })
 {
   const price = row.price;
   // Amazon - shown on listing page in vendor's currency
