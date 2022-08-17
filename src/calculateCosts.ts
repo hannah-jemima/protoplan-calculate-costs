@@ -4,7 +4,7 @@ import {
   TUnitConversions,
   TUnits,
   TProtocolRowCostCalculationData } from "@protoplan/types";
-import { retrieveExchangeRate } from "./currency.js";
+import { retrieveExchangeRate } from "@protoplan/exchange-rates";
 import { getUnitConversionFactor } from "@protoplan/unit-utils";
 
 
