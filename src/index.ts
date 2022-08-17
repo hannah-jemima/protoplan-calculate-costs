@@ -5,7 +5,6 @@ import {
   calculatePerOrderFeePerMonth,
   sortProtocol,
   calculateTotalCosts } from './calculateCosts.js';
-import { retrieveExchangeRate } from './currency.js';
 
 export {
   calculateCostsAndRepurchases,
@@ -13,5 +12,4 @@ export {
   calculateCost,
   calculatePerOrderFeePerMonth,
   sortProtocol,
-  calculateTotalCosts,
-  retrieveExchangeRate }
+  calculateTotalCosts }
