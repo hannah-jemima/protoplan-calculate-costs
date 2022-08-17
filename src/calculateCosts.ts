@@ -28,8 +28,6 @@ export async function calculateCostsAndRepurchases<T>(
     const repurchase = calculateRepurchase(listingsPerMonth);
     const {
       exchangeRate,
-      taxPercent,
-      taxEstimated,
       cost,
       costPerMonth } = await calculateCostPerMonth({ ...row, listingsPerMonth });
     const feesPerMonth = await calculatePerOrderFeePerMonth({
@@ -43,8 +41,6 @@ export async function calculateCostsAndRepurchases<T>(
       listingsPerMonth,
       repurchase,
       exchangeRate,
-      taxPercent,
-      taxEstimated,
       cost,
       costPerMonth,
       feesPerMonth };
@@ -98,20 +94,20 @@ async function calculateCostPerMonth(row: {
   deliveryPerProduct: number | null,
   userCurrencyCode: string,
   listingCurrencyCode: string,
-  taxPercent: number | null,
+  taxPercent: number,
   userCountryId: number,
   vendorCountryId: number,
-  deliveryPrice: number | null })
+  deliveryPrice: number })
 {
   // Calculate listing price with per-listing taxes & exchange rate
-  const { exchangeRate, taxPercent, taxEstimated, cost } = await calculateCost(row);
+  const { exchangeRate, cost } = await calculateCost(row);
 
   let costPerMonth = (cost * row.listingsPerMonth) || 0;
 
   if(row.bundleId)
     costPerMonth *= row.quantity / row.nBundleProducts;
 
-  return { exchangeRate, taxPercent, taxEstimated, cost, costPerMonth };
+  return { exchangeRate, cost, costPerMonth };
 }
 
 export async function calculateCost(row: {
@@ -119,32 +115,24 @@ export async function calculateCost(row: {
   deliveryPerProduct: number | null,
   userCurrencyCode: string,
   listingCurrencyCode: string,
-  taxPercent: number | null,
+  taxPercent: number,
   userCountryId: number,
   vendorCountryId: number,
-  deliveryPrice: number | null })
+  deliveryPrice: number })
 {
-  const gpbToUserCurrency = await retrieveExchangeRate('GBP', row.userCurrencyCode);
-  const domestic = row.userCountryId === row.vendorCountryId;
   const price = row.price;
   // Amazon - shown on listing page in vendor's currency
   const deliveryPerProduct = row.deliveryPerProduct || 0;
-  const freeDelivery = !deliveryPerProduct && (row.deliveryPrice === 0);
   const userCurrencyCode = row.userCurrencyCode;
   const listingCurrencyCode = row.listingCurrencyCode;
-  const taxEstimated = !(domestic || freeDelivery) && row.taxPercent === null;
-  // iHerb - Vendor-specific, on listing price in user's currency
-  const taxPercent = (row.taxPercent !== null) ?
-    row.taxPercent :
-    ((domestic || freeDelivery) ? 0 : (20 * gpbToUserCurrency));
 
   const exchangeRate = await retrieveExchangeRate(listingCurrencyCode, userCurrencyCode);
 
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
-  const cost = (price + deliveryPerProduct) * exchangeRate * (1 + taxPercent / 100);
+  const cost = (price + deliveryPerProduct) * exchangeRate * (1 + row.taxPercent / 100);
 
-  return { exchangeRate, taxPercent, taxEstimated, cost };
+  return { exchangeRate, cost };
 }
 
 
