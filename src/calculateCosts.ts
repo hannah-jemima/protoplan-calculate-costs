@@ -91,7 +91,7 @@ async function calculateCostPerMonth(row: {
   bundleId: number | null,
   quantity: number,
   price: number,
-  deliveryPerProduct: number | null,
+  deliveryPerListing: number | null,
   userCurrencyCode: string,
   listingCurrencyCode: string,
   taxPercent: number,
@@ -111,7 +111,7 @@ async function calculateCostPerMonth(row: {
 
 export async function calculateCost(row: {
   price: number,
-  deliveryPerProduct: number | null,
+  deliveryPerListing: number | null,
   userCurrencyCode: string,
   listingCurrencyCode: string,
   taxPercent: number,
@@ -120,7 +120,7 @@ export async function calculateCost(row: {
 {
   const price = row.price;
   // Amazon - shown on listing page in vendor's currency
-  const deliveryPerProduct = row.deliveryPerProduct || 0;
+  const deliveryPerListing = row.deliveryPerListing || 0;
   const userCurrencyCode = row.userCurrencyCode;
   const listingCurrencyCode = row.listingCurrencyCode;
 
@@ -128,7 +128,7 @@ export async function calculateCost(row: {
 
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
-  const cost = (price + deliveryPerProduct) * exchangeRate * (1 + row.taxPercent / 100);
+  const cost = (price + deliveryPerListing) * exchangeRate * (1 + row.taxPercent / 100);
 
   return { exchangeRate, cost };
 }
@@ -147,7 +147,7 @@ type TOrderFeeCalculationData = {
   deliveryPrice: number,
   basketLimit: number,
   cost: number,
-  deliveryPerProduct: number | null,
+  deliveryPerListing: number | null,
   baseTax: number,
   vendorCountryId: number,
   userCountryId: number,
@@ -162,8 +162,8 @@ export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalcula
   const gpbToUserCurrency = await retrieveExchangeRate('GBP', data.userCurrencyCode);
   const domestic = data.userCountryId === data.vendorCountryId;
 
-  const deliveryPerProduct = data.deliveryPerProduct || 0;
-  const freeDelivery = !deliveryPerProduct && (data.deliveryPrice === 0);
+  const deliveryPerListing = data.deliveryPerListing || 0;
+  const freeDelivery = !deliveryPerListing && (data.deliveryPrice === 0);
 
   const maxListingsPerOrder = Math.floor(data.basketLimit / data.cost) || 1;
   const ordersPerMonth = data.listingsPerMonth / maxListingsPerOrder;
