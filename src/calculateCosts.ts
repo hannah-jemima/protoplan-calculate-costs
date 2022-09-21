@@ -127,7 +127,6 @@ export async function calculateCost(row: {
   const listingCurrencyCode = row.listingCurrencyCode;
 
   const exchangeRate = await retrieveExchangeRate(listingCurrencyCode, userCurrencyCode);
-  console.log("calculateCost exchangeRate", listingCurrencyCode, userCurrencyCode, exchangeRate);
 
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
@@ -164,11 +163,7 @@ type TOrderFeeCalculationData = {
 export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalculationData)
 {
   // All fees shown at checkout in user's currency
-  const gpbToUserCurrency = await retrieveExchangeRate('GBP', data.userCurrencyCode);
-  const domestic = data.userCountryId === data.vendorCountryId;
-
   const deliveryPerListing = data.deliveryPerListing || 0;
-  const freeDelivery = !deliveryPerListing && (data.deliveryPrice === 0);
 
   const maxListingsPerOrder = Math.floor(data.basketLimit / data.cost) || 1;
   const ordersPerMonth = data.listingsPerMonth / maxListingsPerOrder;
