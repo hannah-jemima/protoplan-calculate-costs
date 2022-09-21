@@ -127,6 +127,7 @@ export async function calculateCost(row: {
   const listingCurrencyCode = row.listingCurrencyCode;
 
   const exchangeRate = await retrieveExchangeRate(listingCurrencyCode, userCurrencyCode);
+  console.log("calculateCost exchangeRate", listingCurrencyCode, userCurrencyCode, exchangeRate);
 
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
