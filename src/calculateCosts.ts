@@ -1,5 +1,4 @@
 import {
-  TProtocol,
   TProtocolRowCosts,
   TUnitConversions,
   TUnits,
@@ -171,7 +170,7 @@ export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalcula
   return (data.deliveryPrice + data.baseTax) * ordersPerMonth * data.quantity / data.nBundleProducts;
 }
 
-export function sortProtocol(protocol: TProtocol)
+export function sortProtocol(protocol: { priority: number }[])
 {
   return protocol.map(r => ({ ...r })).sort((a, b) => a.priority - b.priority);
 }
