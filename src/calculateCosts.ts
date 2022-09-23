@@ -162,7 +162,12 @@ export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalcula
   const maxListingsPerOrder = Math.floor(data.basketLimit / data.cost) || 1;
   const ordersPerMonth = data.listingsPerMonth / maxListingsPerOrder;
 
-  return (data.deliveryPrice + data.baseTax) * ordersPerMonth * data.quantity / data.nBundleProducts;
+  const perOrderFeePerMonth =  (data.deliveryPrice + data.baseTax) *
+    ordersPerMonth * data.quantity / data.nBundleProducts;
+
+  console.log("perOrderFeePerMonth", perOrderFeePerMonth)
+
+  return perOrderFeePerMonth;
 }
 
 export function sortProtocol(protocol: { priority: number }[])
