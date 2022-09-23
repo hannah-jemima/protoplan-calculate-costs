@@ -5,6 +5,7 @@ import {
   calculatePerOrderFeePerMonth,
   sortProtocol,
   calculateTotalCosts } from './calculateCosts.js';
+import { enforceProtocolRowTypes } from './enforceTypes';
 
 export {
   calculateCostsAndRepurchases,
@@ -12,4 +13,5 @@ export {
   calculateCost,
   calculatePerOrderFeePerMonth,
   sortProtocol,
-  calculateTotalCosts }
+  calculateTotalCosts,
+  enforceProtocolRowTypes };

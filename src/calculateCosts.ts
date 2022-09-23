@@ -12,8 +12,6 @@ export async function calculateCostsAndRepurchases<T>(
   units: TUnits,
   unitConversions: TUnitConversions)
 {
-  console.log("calculateCostsAndRepurchases");
-
   const protocolWithProductsPerMonth = data.map(row =>
   {
     const productsPerMonth = calculateProductsPerMonth(row, units, unitConversions);
@@ -157,8 +155,6 @@ type TOrderFeeCalculationData = {
 // Accounting for per-order charges (delivery, base tax, customs), would it be cheaper?
 export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalculationData)
 {
-  console.log("calculatePerOrderFeePerMonth");
-
   console.log("calculatePerOrderFeePerMonth",
     data.basketLimit, data.cost, data.listingsPerMonth, data.deliveryPrice, data.baseTax, data.quantity,
     data.nBundleProducts);
@@ -168,8 +164,6 @@ export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalcula
 
   const perOrderFeePerMonth = (data.deliveryPrice + data.baseTax) *
     ordersPerMonth * data.quantity / data.nBundleProducts;
-
-  console.log("perOrderFeePerMonth", perOrderFeePerMonth)
 
   return perOrderFeePerMonth;
 }
