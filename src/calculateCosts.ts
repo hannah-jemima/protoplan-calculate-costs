@@ -157,6 +157,8 @@ type TOrderFeeCalculationData = {
 // Accounting for per-order charges (delivery, base tax, customs), would it be cheaper?
 export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalculationData)
 {
+  console.log("calculatePerOrderFeePerMonth");
+
   const maxListingsPerOrder = Math.floor(data.basketLimit / data.cost) || 1;
   const ordersPerMonth = data.listingsPerMonth / maxListingsPerOrder;
 
