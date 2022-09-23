@@ -1,9 +1,12 @@
-import { TProtocolRowCosts } from "@protoplan/types";
 
 
 
-
-export function enforceProtocolRowTypes(r: TProtocolRowCosts)
+export function enforceProtocolRowTypes(r: {
+  price: number,
+  baseTax: number,
+  taxPercent: number,
+  deliveryPrice: number,
+  amount: number })
 {
   return {
     ...r,
