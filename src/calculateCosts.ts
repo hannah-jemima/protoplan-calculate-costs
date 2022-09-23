@@ -19,7 +19,7 @@ export async function calculateCostsAndRepurchases<T>(
     return { ...row, productsPerMonth };
   });
 
-  return Promise.all(protocolWithProductsPerMonth.map(async row =>
+  const protocolWithCosts = await Promise.all(protocolWithProductsPerMonth.map(async row =>
   {
     const bundleRows = protocolWithProductsPerMonth.filter(r =>
       row.bundleId ? (r.bundleId === row.bundleId) : (r.protocolId === row.protocolId));
@@ -44,6 +44,10 @@ export async function calculateCostsAndRepurchases<T>(
       costPerMonth,
       feesPerMonth };
   }));
+
+  console.log("calculateCostsAndRepurchases protocolWithCosts", protocolWithCosts);
+
+  return protocolWithCosts;
 }
 
 export function calculateProductsPerMonth(
@@ -155,10 +159,6 @@ type TOrderFeeCalculationData = {
 // Accounting for per-order charges (delivery, base tax, customs), would it be cheaper?
 export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalculationData)
 {
-  console.log("calculatePerOrderFeePerMonth",
-    data.basketLimit, data.cost, data.listingsPerMonth, data.deliveryPrice, data.baseTax, data.quantity,
-    data.nBundleProducts);
-
   const maxListingsPerOrder = Math.floor(data.basketLimit / data.cost) || 1;
   const ordersPerMonth = data.listingsPerMonth / maxListingsPerOrder;
 
