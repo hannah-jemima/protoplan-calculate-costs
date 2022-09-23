@@ -45,8 +45,6 @@ export async function calculateCostsAndRepurchases<T>(
       feesPerMonth };
   }));
 
-  console.log("calculateCostsAndRepurchases protocolWithCosts", protocolWithCosts);
-
   return protocolWithCosts;
 }
 
