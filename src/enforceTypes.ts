@@ -1,7 +1,7 @@
 
 
 
-export function enforceProtocolRowTypes(r: {
+export function enforceProtocolRowTypes<T>(r: T & {
   price: number,
   baseTax: number,
   taxPercent: number,
