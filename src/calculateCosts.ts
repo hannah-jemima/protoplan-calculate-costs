@@ -7,8 +7,8 @@ import { retrieveExchangeRate } from "@protoplan/exchange-rates";
 import { getUnitConversionFactor } from "@protoplan/unit-utils";
 
 
-export async function calculateCostsAndRepurchases<T>(
-  data: (T & TProtocolRowCostCalculationData)[],
+export async function calculateCostsAndRepurchases<T extends TProtocolRowCostCalculationData>(
+  data: T[],
   units: TUnits,
   unitConversions: TUnitConversions)
 {
@@ -29,7 +29,7 @@ export async function calculateCostsAndRepurchases<T>(
       exchangeRate,
       cost,
       costPerMonth } = await calculateCostPerMonth({ ...row, listingsPerMonth });
-    const feesPerMonth = await calculatePerOrderFeePerMonth({
+    const  { maxListingsPerOrder, ordersPerMonth, feesPerMonth } = await calculatePerOrderFeePerMonth({
       ...row,
       cost,
       listingsPerMonth,
@@ -42,6 +42,8 @@ export async function calculateCostsAndRepurchases<T>(
       exchangeRate,
       cost,
       costPerMonth,
+      maxListingsPerOrder,
+      ordersPerMonth,
       feesPerMonth };
   }));
 
@@ -108,7 +110,7 @@ async function calculateCostPerMonth(row: {
   if(row.bundleId)
     costPerMonth *= row.quantity / row.nBundleProducts;
 
-  return { exchangeRate, cost, costPerMonth };
+  return { exchangeRate: Number(exchangeRate), cost, costPerMonth };
 }
 
 export async function calculateCost(row: {
@@ -160,13 +162,13 @@ export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalcula
   const maxListingsPerOrder = Math.floor(data.basketLimit / data.cost) || 1;
   const ordersPerMonth = data.listingsPerMonth / maxListingsPerOrder;
 
-  const perOrderFeePerMonth =
+  const feesPerMonth =
     (Number(data.deliveryPrice) + data.baseTax) *
     ordersPerMonth *
     data.quantity /
     data.nBundleProducts;
 
-  return perOrderFeePerMonth;
+  return { maxListingsPerOrder, ordersPerMonth, feesPerMonth };
 }
 
 export function sortProtocol(protocol: { priority: number }[])
