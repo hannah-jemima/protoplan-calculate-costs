@@ -7,7 +7,7 @@ export function enforceProtocolRowTypes<T>(r: T & {
   taxPercent?: number,
   deliveryPrice?: number,
   amount?: number,
-  scrapeTime?: Date })
+  scrapeTime?: Date | null })
 {
   return {
     ...r,
