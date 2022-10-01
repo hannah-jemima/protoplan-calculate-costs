@@ -6,7 +6,8 @@ export function enforceProtocolRowTypes<T>(r: T & {
   baseTax?: number,
   taxPercent?: number,
   deliveryPrice?: number,
-  amount?: number })
+  amount?: number,
+  scrapeTime?: Date })
 {
   return {
     ...r,
@@ -14,5 +15,6 @@ export function enforceProtocolRowTypes<T>(r: T & {
     baseTax: r.baseTax !== undefined ? Number(r.baseTax) : undefined,
     taxPercent: r.taxPercent !== undefined ? Number(r.taxPercent) : undefined,
     deliveryPrice: r.deliveryPrice !== undefined ? Number(r.deliveryPrice) : undefined,
-    amount: r.amount !== undefined ? Number(r.amount) : undefined };
+    amount: r.amount !== undefined ? Number(r.amount) : undefined,
+    scrapeTime: r.scrapeTime ? new Date(r.scrapeTime) : r.scrapeTime };
 }
