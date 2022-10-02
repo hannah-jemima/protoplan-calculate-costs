@@ -31,6 +31,7 @@ export async function calculateCostsAndRepurchases<T extends TProtocolRowCostCal
       costPerMonth } = await calculateCostPerMonth({ ...row, listingsPerMonth });
     const  { maxListingsPerOrder, ordersPerMonth, feesPerMonth } = await calculatePerOrderFeePerMonth({
       ...row,
+      exchangeRate,
       priceWithTax,
       listingsPerMonth,
       costPerMonth });
@@ -148,6 +149,7 @@ export async function calculateCost(row: {
 ////////////// Per-Order Fees //////////////////////////////////////////////////////////////////////
 
 type TOrderFeeCalculationData = {
+  exchangeRate: number,
   quantity: number,
   nBundleProducts: number,
   deliveryPrice: number,
@@ -162,10 +164,10 @@ export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalcula
   const maxListingsPerOrder = Math.floor(data.basketLimit / data.priceWithTax) || 1;
   const ordersPerMonth = data.listingsPerMonth / maxListingsPerOrder;
 
-  // Delivery price shown in user's currency, base tax shown in user's currency
+  // Delivery price shown in vendor's currency, base tax shown in user's currency
   // Fees per month calculated in user's currency
   const feesPerMonth =
-    (Number(data.deliveryPrice) + data.baseTax) *
+    (Number(data.deliveryPrice) * data.exchangeRate + data.baseTax) *
     ordersPerMonth *
     data.quantity /
     data.nBundleProducts;
