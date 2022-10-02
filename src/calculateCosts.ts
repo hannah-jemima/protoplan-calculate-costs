@@ -27,11 +27,11 @@ export async function calculateCostsAndRepurchases<T extends TProtocolRowCostCal
     const repurchase = calculateRepurchase(listingsPerMonth);
     const {
       exchangeRate,
-      cost,
+      priceWithTax,
       costPerMonth } = await calculateCostPerMonth({ ...row, listingsPerMonth });
     const  { maxListingsPerOrder, ordersPerMonth, feesPerMonth } = await calculatePerOrderFeePerMonth({
       ...row,
-      cost,
+      priceWithTax,
       listingsPerMonth,
       costPerMonth });
 
@@ -40,7 +40,7 @@ export async function calculateCostsAndRepurchases<T extends TProtocolRowCostCal
       listingsPerMonth,
       repurchase,
       exchangeRate,
-      cost,
+      priceWithTax,
       costPerMonth,
       maxListingsPerOrder,
       ordersPerMonth,
@@ -103,14 +103,14 @@ async function calculateCostPerMonth(row: {
   vendorCountryId: number })
 {
   // Calculate listing price with per-listing taxes & exchange rate
-  const { exchangeRate, cost } = await calculateCost(row);
+  const { exchangeRate, priceWithTax } = await calculateCost(row);
 
-  let costPerMonth = (cost * row.listingsPerMonth) || 0;
+  let costPerMonth = (priceWithTax * row.listingsPerMonth) || 0;
 
   if(row.bundleId)
     costPerMonth *= row.quantity / row.nBundleProducts;
 
-  return { exchangeRate: Number(exchangeRate), cost, costPerMonth };
+  return { exchangeRate: Number(exchangeRate), priceWithTax, costPerMonth };
 }
 
 export async function calculateCost(row: {
@@ -133,11 +133,11 @@ export async function calculateCost(row: {
 
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
-  const cost = (
+  const priceWithTax = (
     (price + deliveryPerListing) * (1 + row.taxPercent / 100) +
     (addBaseTax ? row.baseTax : 0)) * exchangeRate;
 
-  return { exchangeRate, cost };
+  return { exchangeRate, priceWithTax };
 }
 
 
@@ -152,14 +152,14 @@ type TOrderFeeCalculationData = {
   nBundleProducts: number,
   deliveryPrice: number,
   basketLimit: number,
-  cost: number,
+  priceWithTax: number,
   baseTax: number,
   listingsPerMonth: number };
 
 // Accounting for per-order charges (delivery, base tax, customs), would it be cheaper?
 export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalculationData)
 {
-  const maxListingsPerOrder = Math.floor(data.basketLimit / data.cost) || 1;
+  const maxListingsPerOrder = Math.floor(data.basketLimit / data.priceWithTax) || 1;
   const ordersPerMonth = data.listingsPerMonth / maxListingsPerOrder;
 
   const feesPerMonth =
