@@ -26,7 +26,7 @@ export function enforceProtocolTypes<T>(rows: (T & IEnforcableProps)[])
 }
 
 
-export function enforceListingTableTypes<T>(listings: (T & IEnforcableProps & { priceWithTax: number })[])
+export function enforceListingTypes<T>(listings: (T & IEnforcableProps & { priceWithTax: number })[])
 {
   return enforceProtocolTypes(listings).map(l => ({
     ...l,
