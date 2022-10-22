@@ -11,7 +11,7 @@ interface IEnforcableProps
   basketLimit?: number | null
 }
 
-export function enforceProtocolRowTypes<T>(rows: (T & IEnforcableProps)[])
+export function enforceProtocolTypes<T>(rows: (T & IEnforcableProps)[])
 {
   return rows.map(r => ({
     ...r,
@@ -28,7 +28,7 @@ export function enforceProtocolRowTypes<T>(rows: (T & IEnforcableProps)[])
 
 export function enforceListingTableTypes<T>(listings: (T & IEnforcableProps & { priceWithTax: number })[])
 {
-  return enforceProtocolRowTypes(listings).map(l => ({
+  return enforceProtocolTypes(listings).map(l => ({
     ...l,
     priceWithTax: Number(l.priceWithTax) }));
 }
