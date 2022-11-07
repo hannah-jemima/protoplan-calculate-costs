@@ -1,6 +1,9 @@
+import { TMoneySavingBundle } from '@protoplan/types';
+
 
 interface IEnforcableProps
 {
+  bundleSavings: TMoneySavingBundle[] | null,
   price: number,
   baseTax?: number,
   taxPercent?: number,
@@ -15,6 +18,9 @@ export function enforceProtocolTypes<T>(rows: (T & IEnforcableProps)[])
 {
   return rows.map(r => ({
     ...r,
+    bundleSavings: r.bundleSavings?.map(s => ({
+      ...s,
+      scrapeTime: s.scrapeTime ?new Date(s.scrapeTime) : s.scrapeTime  })) || null,
     price: Number(r.price),
     baseTax: r.baseTax !== undefined ? Number(r.baseTax) : undefined,
     taxPercent: r.taxPercent !== undefined ? Number(r.taxPercent) : undefined,
