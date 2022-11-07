@@ -1,9 +1,7 @@
 import { TMoneySavingBundle } from '@protoplan/types';
 
-
-interface IEnforcableProps
+interface IEnforcableTypes
 {
-  bundleSavings: TMoneySavingBundle[] | null,
   price: number,
   baseTax?: number,
   taxPercent?: number,
@@ -14,23 +12,31 @@ interface IEnforcableProps
   basketLimit?: number | null
 }
 
+interface IEnforcableProps extends IEnforcableTypes
+{
+  bundleSavings: TMoneySavingBundle[] | null
+}
+
 export function enforceProtocolTypes<T>(rows: (T & IEnforcableProps)[])
 {
   return rows.map(r => ({
-    ...r,
-    bundleSavings: r.bundleSavings?.map(s => ({
-      ...s,
-      scrapeTime: s.scrapeTime ?new Date(s.scrapeTime) : s.scrapeTime  })) || null,
-    price: Number(r.price),
-    baseTax: r.baseTax !== undefined ? Number(r.baseTax) : undefined,
-    taxPercent: r.taxPercent !== undefined ? Number(r.taxPercent) : undefined,
-    deliveryPrice: r.deliveryPrice !== undefined ? Number(r.deliveryPrice) : undefined,
-    amount: Number(r.amount),
-    amountUnit: String(r.amountUnit),
-    scrapeTime: r.scrapeTime ? new Date(r.scrapeTime) : r.scrapeTime,
-    basketLimit: r.basketLimit ? Number(r.basketLimit) : r.basketLimit }));
+    ...enforceProtocolRowTypes(r),
+    bundleSavings: r.bundleSavings?.map(s => enforceProtocolRowTypes(s)) || null }));
 }
 
+function enforceProtocolRowTypes<T>(row: T & IEnforcableTypes)
+{
+  return {
+    ...row,
+    price: Number(row.price),
+    baseTax: row.baseTax !== undefined ? Number(row.baseTax) : undefined,
+    taxPercent: row.taxPercent !== undefined ? Number(row.taxPercent) : undefined,
+    deliveryPrice: row.deliveryPrice !== undefined ? Number(row.deliveryPrice) : undefined,
+    amount: Number(row.amount),
+    amountUnit: String(row.amountUnit),
+    scrapeTime: row.scrapeTime ? new Date(row.scrapeTime) : row.scrapeTime,
+    basketLimit: row.basketLimit ? Number(row.basketLimit) : row.basketLimit }
+}
 
 export function enforceListingTypes<T>(listings: (T & IEnforcableProps & { priceWithTax: number })[])
 {
