@@ -14,7 +14,7 @@ interface IEnforcableTypes
 
 interface IEnforcableProps extends IEnforcableTypes
 {
-  bundleSavings: TMoneySavingBundle[] | null
+  bundleSavings?: TMoneySavingBundle[] | null
 }
 
 export function enforceProtocolTypes<T>(rows: (T & IEnforcableProps)[])
