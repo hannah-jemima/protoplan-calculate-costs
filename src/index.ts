@@ -10,7 +10,7 @@ import { enforceProtocolTypes, enforceListingTypes } from './enforceTypes.js';
 export {
   calculateCostsAndRepurchases,
   calculateProductsPerMonth,
-  calculateListingCost as calculateCost,
+  calculateListingCost,
   calculatePerOrderFeePerMonth,
   sortProtocol,
   calculateTotalCosts,
