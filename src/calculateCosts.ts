@@ -104,7 +104,7 @@ async function calculateCostPerMonth(row: {
   vendorCountryId: number })
 {
   // Calculate listing price with per-listing taxes & exchange rate
-  const { exchangeRate, priceWithTax } = await calculateCost(row);
+  const { exchangeRate, priceWithTax } = await calculateListingCost(row);
 
   let costPerMonth = (priceWithTax * row.listingsPerMonth) || 0;
 
@@ -114,7 +114,7 @@ async function calculateCostPerMonth(row: {
   return { exchangeRate: Number(exchangeRate), priceWithTax, costPerMonth };
 }
 
-export async function calculateCost(row: {
+export async function calculateListingCost(row: {
   price: number,
   deliveryPerListing: number | null,
   userCurrencyCode: string,
@@ -122,7 +122,7 @@ export async function calculateCost(row: {
   taxPercent: number,
   baseTax: number,
   userCountryId: number,
-  vendorCountryId: number }, addBaseTax = false)
+  vendorCountryId: number }, includeBaseTax = false)
 {
   const price = row.price;
   // Amazon - shown on listing page in vendor's currency
@@ -136,7 +136,7 @@ export async function calculateCost(row: {
   // Per-product delivery costs are also taxed
   const priceWithTax = (
     (price + deliveryPerListing) * (1 + row.taxPercent / 100) +
-    (addBaseTax ? row.baseTax : 0)) * exchangeRate;
+    (includeBaseTax ? row.baseTax : 0)) * exchangeRate;
 
   return { exchangeRate, priceWithTax };
 }

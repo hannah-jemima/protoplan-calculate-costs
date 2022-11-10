@@ -1,7 +1,7 @@
 import {
   calculateCostsAndRepurchases,
   calculateProductsPerMonth,
-  calculateCost,
+  calculateListingCost,
   calculatePerOrderFeePerMonth,
   sortProtocol,
   calculateTotalCosts } from './calculateCosts.js';
@@ -10,7 +10,7 @@ import { enforceProtocolTypes, enforceListingTypes } from './enforceTypes.js';
 export {
   calculateCostsAndRepurchases,
   calculateProductsPerMonth,
-  calculateCost,
+  calculateListingCost as calculateCost,
   calculatePerOrderFeePerMonth,
   sortProtocol,
   calculateTotalCosts,
