@@ -21,8 +21,9 @@ export async function calculateCostsAndRepurchases<T extends TProtocolRowCostCal
 
   const protocolWithCosts = await Promise.all(protocolWithProductsPerMonth.map(async row =>
   {
-    const bundleRows = protocolWithProductsPerMonth.filter(r =>
-      row.bundleId ? (r.bundleId === row.bundleId) : (r.protocolId === row.protocolId));
+    const bundleRows = row.bundleId ?
+      protocolWithProductsPerMonth.filter(r => (r.bundleId === row.bundleId)) :
+      [row];
     const listingsPerMonth = Math.max(...bundleRows.map(r => r.productsPerMonth / r.quantity));
     const repurchase = calculateRepurchase(listingsPerMonth);
     const {
@@ -99,9 +100,7 @@ async function calculateCostPerMonth(row: {
   userCurrencyCode: string,
   listingCurrencyCode: string,
   taxPercent: number,
-  baseTax: number,
-  userCountryId: number,
-  vendorCountryId: number })
+  baseTax: number })
 {
   // Calculate listing price with per-listing taxes & exchange rate
   const { exchangeRate, priceWithTax } = await calculateListingCost(row);
@@ -120,9 +119,7 @@ export async function calculateListingCost(row: {
   userCurrencyCode: string,
   listingCurrencyCode: string,
   taxPercent: number,
-  baseTax: number,
-  userCountryId: number,
-  vendorCountryId: number }, includeBaseTax = false)
+  baseTax: number }, includeBaseTax = false)
 {
   const price = row.price;
   // Amazon - shown on listing page in vendor's currency
