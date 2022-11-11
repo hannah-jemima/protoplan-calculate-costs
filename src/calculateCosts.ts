@@ -24,13 +24,28 @@ export async function calculateCostsAndRepurchases<T extends TProtocolRowCostCal
     const bundleRows = row.bundleId ?
       protocolWithProductsPerMonth.filter(r => (r.bundleId === row.bundleId)) :
       [row];
-    const listingsPerMonth = Math.max(...bundleRows.map(r => r.productsPerMonth / r.quantity));
+
+    // productsPerMonth represents the total amount to cover all dosings of a bundle product
+    // (required in case bundle product is split across multiple protocol rows for multiple dosing strategies)
+    const totalProductsPerMonth = (productId: number) =>
+    {
+      return bundleRows
+        .filter(r => r.productId === productId)
+        .reduce((pTot, br) => pTot + br.productsPerMonth, 0);
+    }
+
+    const amountProportion = row.productsPerMonth / totalProductsPerMonth(row.productId) // of bundle product
+
+    const listingsPerMonth = Math.max(...bundleRows.map(r => totalProductsPerMonth(r.productId) / r.quantity));
+
     const repurchase = calculateRepurchase(listingsPerMonth);
+
     const {
       exchangeRate,
       priceWithTax,
-      costPerMonth } = await calculateCostPerMonth({ ...row, listingsPerMonth });
-    const  { maxListingsPerOrder, ordersPerMonth, feesPerMonth } = await calculatePerOrderFeePerMonth({
+      costPerMonth } = await calculateCostPerMonth({ ...row, listingsPerMonth, amountProportion });
+
+    const { maxListingsPerOrder, ordersPerMonth, feesPerMonth } = await calculatePerOrderFeePerMonth({
       ...row,
       exchangeRate,
       priceWithTax,
@@ -38,6 +53,7 @@ export async function calculateCostsAndRepurchases<T extends TProtocolRowCostCal
       costPerMonth });
 
     return {
+      // row.productsPerMonth represents the total amount required over a month for this row's dosage.
       ...row,
       listingsPerMonth,
       repurchase,
@@ -100,15 +116,20 @@ async function calculateCostPerMonth(row: {
   userCurrencyCode: string,
   listingCurrencyCode: string,
   taxPercent: number,
-  baseTax: number })
+  baseTax: number,
+  amountProportion?: number })
 {
   // Calculate listing price with per-listing taxes & exchange rate
   const { exchangeRate, priceWithTax } = await calculateListingCost(row);
 
   let costPerMonth = (priceWithTax * row.listingsPerMonth) || 0;
 
+  // Apportion costPerMonth by:
+  //   - quantity of product in bundle
+  //   - the dose proportion of a bundle product in this row, where it is split across multiple rows
+  //     (for different dosing dtrategies)
   if(row.bundleId)
-    costPerMonth *= row.quantity / row.nBundleProducts;
+    costPerMonth *= row.quantity * (row.amountProportion || 1) / row.nBundleProducts;
 
   return { exchangeRate: Number(exchangeRate), priceWithTax, costPerMonth };
 }
