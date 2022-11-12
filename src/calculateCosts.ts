@@ -1,5 +1,4 @@
 import {
-  TProtocolRowCosts,
   TUnitConversions,
   TUnits,
   TProtocolRowCostCalculationData } from "@protoplan/types";
@@ -25,7 +24,7 @@ export async function calculateCostsAndRepurchases<T extends TProtocolRowCostCal
       protocolWithProductsPerMonth.filter(r => (r.bundleId === row.bundleId)) :
       [row];
 
-    // productsPerMonth represents the total amount to cover all dosings of a bundle product
+    // totalProductsPerMonth represents the total amount to cover all dosings of a bundle product
     // (required in case bundle product is split across multiple protocol rows for multiple dosing strategies)
     const totalProductsPerMonth = (productId: number) =>
     {
@@ -34,9 +33,11 @@ export async function calculateCostsAndRepurchases<T extends TProtocolRowCostCal
         .reduce((pTot, br) => pTot + br.productsPerMonth, 0);
     }
 
+    // Proportion of product in this row vs. across all rows
     const amountProportion = row.productsPerMonth / totalProductsPerMonth(row.productId) // of bundle product
 
-    const listingsPerMonth = Math.max(...bundleRows.map(r => totalProductsPerMonth(r.productId) / r.quantity));
+    // Listings per month determined by highest amount of product required out of the bundle
+    const listingsPerMonth = Math.max(...bundleRows.map(r => row.productsPerMonth / r.quantity));
 
     const repurchase = calculateRepurchase(listingsPerMonth);
 
