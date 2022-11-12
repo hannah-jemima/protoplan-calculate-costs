@@ -1,4 +1,4 @@
-import { TMoneySavingBundle } from '@protoplan/types';
+import { IBundleSaving } from '@protoplan/types';
 
 interface IEnforcableTypes
 {
@@ -14,14 +14,17 @@ interface IEnforcableTypes
 
 interface IEnforcableProps extends IEnforcableTypes
 {
-  bundleSavings?: TMoneySavingBundle[] | null
+  bundleSavings?: IBundleSaving[] | null
 }
 
 export function enforceProtocolTypes<T>(rows: (T & IEnforcableProps)[])
 {
   return rows.map(r => ({
     ...enforceProtocolRowTypes(r),
-    bundleSavings: r.bundleSavings?.map(s => enforceProtocolRowTypes(s)) || null }));
+    bundleSavings: r.bundleSavings?.map(s => ({
+      replacableRows: s.replacableRows.map(r => enforceProtocolRowTypes(r)),
+      bundle: s.bundle.map(r => enforceProtocolRowTypes(r)),
+      leftoverProducts: s.leftoverProducts.map(r => enforceProtocolRowTypes(r)) })) }));
 }
 
 function enforceProtocolRowTypes<T>(row: T & IEnforcableTypes)
