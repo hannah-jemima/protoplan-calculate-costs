@@ -1,6 +1,6 @@
 {
   "name": "@protoplan/calculate-costs",
-  "version": "5.1.14",
+  "version": "5.1.15",
   "description": "",
   "main": "./lib/index.js",
   "module": "./lib/index.js",
