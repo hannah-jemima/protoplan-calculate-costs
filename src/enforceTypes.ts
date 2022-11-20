@@ -50,7 +50,7 @@ function enforceProtocolRowTypes<T>(row: T & IEnforcableTypes)
     amountUnit: String(row.amountUnit),
     scrapeTime: row.scrapeTime ? new Date(row.scrapeTime) : row.scrapeTime,
     basketLimit: row.basketLimit ? Number(row.basketLimit) : row.basketLimit,
-    inaccessible: row.inaccessible === true || row.inaccessible === 1 } as (T & IEnforcedTypes);
+    inaccessible: row.inaccessible === 1 };
 }
 
 export function enforceListingTypes<T>(listings: (T & IEnforcableProps & { priceWithTax: number })[])
