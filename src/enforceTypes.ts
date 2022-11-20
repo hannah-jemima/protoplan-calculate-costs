@@ -9,7 +9,8 @@ interface IEnforcableTypes
   amount: number,
   amountUnit: string,
   scrapeTime?: Date | null,
-  basketLimit?: number | null
+  basketLimit?: number | null,
+  inaccessible: number | null | boolean
 }
 
 interface IEnforcableProps extends IEnforcableTypes
@@ -39,7 +40,8 @@ function enforceProtocolRowTypes<T>(row: T & IEnforcableTypes)
     amount: Number(row.amount),
     amountUnit: String(row.amountUnit),
     scrapeTime: row.scrapeTime ? new Date(row.scrapeTime) : row.scrapeTime,
-    basketLimit: row.basketLimit ? Number(row.basketLimit) : row.basketLimit }
+    basketLimit: row.basketLimit ? Number(row.basketLimit) : row.basketLimit,
+    inaccessible: row.inaccessible === true || row.inaccessible === 1 }
 }
 
 export function enforceListingTypes<T>(listings: (T & IEnforcableProps & { priceWithTax: number })[])
