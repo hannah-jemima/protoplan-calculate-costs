@@ -1,6 +1,6 @@
 import { IBundleSaving } from '@protoplan/types';
 
-interface IEnforcableTypes
+interface IEnforceTypesBase
 {
   price: number,
   baseTax?: number,
@@ -10,7 +10,16 @@ interface IEnforcableTypes
   amountUnit: string,
   scrapeTime?: Date | null,
   basketLimit?: number | null,
+}
+
+interface IEnforcableTypes extends IEnforceTypesBase
+{
   inaccessible: number | null | boolean
+}
+
+interface IEnforcedTypes extends IEnforceTypesBase
+{
+  inaccessible: boolean
 }
 
 interface IEnforcableProps extends IEnforcableTypes
@@ -41,7 +50,7 @@ function enforceProtocolRowTypes<T>(row: T & IEnforcableTypes)
     amountUnit: String(row.amountUnit),
     scrapeTime: row.scrapeTime ? new Date(row.scrapeTime) : row.scrapeTime,
     basketLimit: row.basketLimit ? Number(row.basketLimit) : row.basketLimit,
-    inaccessible: row.inaccessible === true || row.inaccessible === 1 }
+    inaccessible: row.inaccessible === true || row.inaccessible === 1 } as (T & IEnforcedTypes);
 }
 
 export function enforceListingTypes<T>(listings: (T & IEnforcableProps & { priceWithTax: number })[])
