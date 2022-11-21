@@ -107,7 +107,7 @@ function calculateRepurchase(listingsPerMonth: number)
   return (avgDaysPerMonth / listingsPerMonth);
 }
 
-async function calculateCostPerMonth(row: {
+export async function calculateCostPerMonth(row: {
   nBundleProducts: number,
   listingsPerMonth: number,
   bundleId: number | null,
