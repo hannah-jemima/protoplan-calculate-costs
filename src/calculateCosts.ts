@@ -108,6 +108,7 @@ function calculateRepurchase(listingsPerMonth: number)
 }
 
 export async function calculateCostPerMonth(row: {
+  listingId: number,
   nBundleProducts: number,
   listingsPerMonth: number,
   bundleId: number | null,
@@ -136,6 +137,7 @@ export async function calculateCostPerMonth(row: {
 }
 
 export async function calculateListingCost(row: {
+  listingId: number,
   price: number,
   deliveryPerListing: number | null,
   userCurrencyCode: string,
@@ -150,6 +152,12 @@ export async function calculateListingCost(row: {
   const listingCurrencyCode = row.listingCurrencyCode;
 
   const exchangeRate = await retrieveExchangeRate(listingCurrencyCode, userCurrencyCode);
+
+  if((row.listingId === 4493 || row.listingId === 3756))
+    console.log("recalculateCostsForRows rowsWithCosts",
+    row.listingCurrencyCode,
+    row.userCurrencyCode,
+    exchangeRate);
 
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
