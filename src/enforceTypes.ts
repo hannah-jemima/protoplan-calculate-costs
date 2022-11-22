@@ -1,4 +1,4 @@
-import { IBundleSaving } from '@protoplan/types';
+import { IBundleSaving, TSavingRow } from '@protoplan/types';
 
 interface IEnforceTypesBase
 {
@@ -19,6 +19,7 @@ export interface IEnforcableTypes extends IEnforceTypesBase
 
 export interface IEnforcableProps extends IEnforcableTypes
 {
+  listingSavings?: TSavingRow[] | null
   bundleSavings?: IBundleSaving[] | null
 }
 
@@ -26,11 +27,12 @@ export function enforceProtocolTypes<T>(rows: (T & IEnforcableProps)[])
 {
   return rows.map(r => ({
     ...enforceProtocolRowTypes(r),
-    bundleSavings: r.bundleSavings?.map(s => ({
-      ...s,
-      replacableRows: s.replacableRows.map(r => enforceProtocolRowTypes(r)),
-      bundle: s.bundle.map(r => enforceProtocolRowTypes(r)),
-      leftoverProducts: s.leftoverProducts.map(r => enforceProtocolRowTypes(r)) })) }));
+    listingSavings: r.listingSavings?.map(ls => enforceProtocolRowTypes(ls)),
+    bundleSavings: r.bundleSavings?.map(bs => ({
+      ...bs,
+      replacableRows: bs.replacableRows.map(r => enforceProtocolRowTypes(r)),
+      bundle: bs.bundle.map(r => enforceProtocolRowTypes(r)),
+      leftoverProducts: bs.leftoverProducts.map(r => enforceProtocolRowTypes(r)) })) }));
 }
 
 function enforceProtocolRowTypes<T>(row: T & IEnforcableTypes)
