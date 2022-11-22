@@ -12,17 +12,12 @@ interface IEnforceTypesBase
   basketLimit?: number | null,
 }
 
-interface IEnforcableTypes extends IEnforceTypesBase
+export interface IEnforcableTypes extends IEnforceTypesBase
 {
   inaccessible: number | null | boolean
 }
 
-interface IEnforcedTypes extends IEnforceTypesBase
-{
-  inaccessible: boolean
-}
-
-interface IEnforcableProps extends IEnforcableTypes
+export interface IEnforcableProps extends IEnforcableTypes
 {
   bundleSavings?: IBundleSaving[] | null
 }
