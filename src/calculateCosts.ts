@@ -151,8 +151,11 @@ export async function calculateListingCost(row: {
   const userCurrencyCode = row.userCurrencyCode;
   const listingCurrencyCode = row.listingCurrencyCode;
 
+  if(listingCurrencyCode !== userCurrencyCode)
+    console.log("calculate-costs", listingCurrencyCode, userCurrencyCode);
   const exchangeRate = await retrieveExchangeRate(listingCurrencyCode, userCurrencyCode);
-  console.log("calculate-costs", listingCurrencyCode, userCurrencyCode, exchangeRate);
+  if(listingCurrencyCode !== userCurrencyCode)
+   console.log("calculate-costs", exchangeRate);
 
   if((row.listingId === 4493 || row.listingId === 3756))
     console.log("recalculateCostsForRows rowsWithCosts",
