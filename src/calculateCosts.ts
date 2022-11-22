@@ -151,17 +151,7 @@ export async function calculateListingCost(row: {
   const userCurrencyCode = row.userCurrencyCode;
   const listingCurrencyCode = row.listingCurrencyCode;
 
-  if(listingCurrencyCode !== userCurrencyCode)
-    console.log("calculate-costs", listingCurrencyCode, userCurrencyCode);
   const exchangeRate = await retrieveExchangeRate(listingCurrencyCode, userCurrencyCode);
-  if(listingCurrencyCode !== userCurrencyCode)
-   console.log("calculate-costs", exchangeRate);
-
-  if((row.listingId === 4493 || row.listingId === 3756))
-    console.log("recalculateCostsForRows rowsWithCosts",
-    row.listingCurrencyCode,
-    row.userCurrencyCode,
-    exchangeRate);
 
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
