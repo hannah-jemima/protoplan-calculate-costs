@@ -88,7 +88,7 @@ export function calculateProductsPerMonth(
   const unitConversionFactor = getUnitConversionFactor(
     row.doseUnitId,
     row.amountUnitId,
-    row.productId,
+    [row.productId],
     units,
     unitConversions);
 
