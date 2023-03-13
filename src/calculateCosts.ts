@@ -114,6 +114,7 @@ export async function calculateCostPerMonth(row: {
   bundleId: number | null,
   quantity: number,
   price: number,
+  discountedPrice: number,
   deliveryPerListing: number | null,
   userCurrencyCode: string,
   listingCurrencyCode: string,
@@ -142,6 +143,7 @@ export async function calculateCostPerMonth(row: {
 export async function calculateListingCost(row: {
   listingId: number,
   price: number,
+  discountedPrice: number,
   deliveryPerListing: number | null,
   userCurrencyCode: string,
   listingCurrencyCode: string,
@@ -151,7 +153,7 @@ export async function calculateListingCost(row: {
   vendorCountryId: number,
   userCountryId: number }, includeBaseTax = false)
 {
-  const price = row.price;
+  const price = row.discountedPrice || row.price;
   // Amazon - shown on listing page in vendor's currency
   const deliveryPerListing = row.deliveryPerListing || 0;
   const userCurrencyCode = row.userCurrencyCode;
