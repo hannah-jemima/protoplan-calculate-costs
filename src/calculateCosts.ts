@@ -1,7 +1,8 @@
 import {
   TUnitConversions,
   TUnits,
-  TProtocolRowCostCalculationData } from "@protoplan/types";
+  TProtocolRowCostCalculationData,
+  IDiscount} from "@protoplan/types";
 import { retrieveExchangeRate } from "@protoplan/exchange-rates";
 import { getUnitConversionFactor } from "@protoplan/unit-utils";
 
@@ -123,7 +124,8 @@ export async function calculateCostPerMonth(row: {
   salesTax: number,
   vendorCountryId: number,
   userCountryId: number,
-  amountProportion?: number })
+  amountProportion?: number,
+  discounts: IDiscount[] })
 {
   // Calculate listing price with per-listing taxes & exchange rate
   const { exchangeRate, priceWithTax } = await calculateListingCost(row);
@@ -143,7 +145,6 @@ export async function calculateCostPerMonth(row: {
 export async function calculateListingCost(row: {
   listingId: number,
   price: number,
-  discountedPrice: number,
   deliveryPerListing: number | null,
   userCurrencyCode: string,
   listingCurrencyCode: string,
@@ -151,9 +152,10 @@ export async function calculateListingCost(row: {
   baseTax: number,
   salesTax: number,
   vendorCountryId: number,
-  userCountryId: number }, includeBaseTax = false)
+  userCountryId: number,
+  discounts: IDiscount[] }, includeBaseTax = false)
 {
-  const price = row.discountedPrice || row.price;
+  const price = row.price;
   // Amazon - shown on listing page in vendor's currency
   const deliveryPerListing = row.deliveryPerListing || 0;
   const userCurrencyCode = row.userCurrencyCode;
@@ -165,9 +167,12 @@ export async function calculateListingCost(row: {
 
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
-  const priceWithTax = (
-    (price + deliveryPerListing) * (1 + row.taxPercent / 100) * (1 + salesTax / 100) +
-    (includeBaseTax ? row.baseTax : 0)) * exchangeRate;
+  const priceWithTax =
+    (
+      (price + deliveryPerListing) * (1 + row.taxPercent / 100) * (1 + salesTax / 100) +
+      (includeBaseTax ? row.baseTax : 0)) *
+    exchangeRate *
+    row.discounts.filter(d => d.applied).reduce((dp, d) => dp * (100 - d.savingPercent) / 100, price);
 
   return { exchangeRate, priceWithTax };
 }
