@@ -165,16 +165,17 @@ export async function calculateListingCost(row: {
   const salesTax = (row.vendorCountryId === 2 && row.userCountryId === 2 && listingCurrencyCode === "USD") ?
     row.salesTax : 0;
 
+  const discountedPrice = row.discounts
+    .filter(d => d.applied)
+    .reduce((dp, d) => dp * (100 - d.savingPercent) / 100, price);
+
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
-  const priceWithTax =
-    (
-      (price + deliveryPerListing) * (1 + row.taxPercent / 100) * (1 + salesTax / 100) +
-      (includeBaseTax ? row.baseTax : 0)) *
-    exchangeRate *
-    row.discounts.filter(d => d.applied).reduce((dp, d) => dp * (100 - d.savingPercent) / 100, price);
+  const priceWithTax = (
+    (discountedPrice + deliveryPerListing) * (1 + row.taxPercent / 100) * (1 + salesTax / 100) +
+    (includeBaseTax ? row.baseTax : 0)) * exchangeRate;
 
-  return { exchangeRate, priceWithTax };
+  return { exchangeRate, discountedPrice, priceWithTax };
 }
 
 
