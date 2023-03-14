@@ -3,6 +3,7 @@ import { IBundleSaving, TSavingRow } from '@protoplan/types';
 interface IEnforceTypesBase
 {
   price: number,
+  discountedPrice: number,
   baseTax?: number,
   taxPercent?: number,
   salesTax?: number,
@@ -41,6 +42,7 @@ function enforceProtocolRowTypes<T>(row: T & IEnforcableTypes)
   return {
     ...row,
     price: Number(row.price),
+    discountedPrice: Number(row.discountedPrice),
     baseTax: row.baseTax !== undefined ? Number(row.baseTax) : undefined,
     taxPercent: row.taxPercent !== undefined ? Number(row.taxPercent) : undefined,
     salesTax: row.salesTax !== undefined ? Number(row.salesTax) : undefined,
