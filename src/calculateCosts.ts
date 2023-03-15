@@ -115,7 +115,6 @@ export async function calculateCostPerMonth(row: {
   bundleId: number | null,
   quantity: number,
   price: number,
-  discountedPrice: number,
   deliveryPerListing: number | null,
   userCurrencyCode: string,
   listingCurrencyCode: string,
