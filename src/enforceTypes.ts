@@ -11,18 +11,18 @@ interface IEnforceTypesBase
   amount: number,
   amountUnit: string,
   scrapeTime?: Date | null,
-  basketLimit?: number | null,
-  discounts: IDiscount[]
+  basketLimit?: number | null
 }
 
 export interface IEnforcableTypes extends IEnforceTypesBase
 {
-  inaccessible: number | null | boolean
+  inaccessible: number | null | boolean,
+  discounts: IDiscount[]
 }
 
 export interface IEnforcableProps extends IEnforcableTypes
 {
-  listingSavings?: TSavingRow[] | null
+  listingSavings?: TSavingRow[] | null,
   bundleSavings?: IBundleSaving[] | null
 }
 
