@@ -17,7 +17,7 @@ interface IEnforceTypesBase
 export interface IEnforcableTypes extends IEnforceTypesBase
 {
   inaccessible: number | null | boolean,
-  discounts: IDiscount[]
+  discounts?: IDiscount[]
 }
 
 export interface IEnforcableProps extends IEnforcableTypes
@@ -53,7 +53,7 @@ function enforceProtocolRowTypes<T>(row: T & IEnforcableTypes)
     scrapeTime: row.scrapeTime ? new Date(row.scrapeTime) : row.scrapeTime,
     basketLimit: row.basketLimit ? Number(row.basketLimit) : row.basketLimit,
     inaccessible: row.inaccessible === 1,
-    discounts: row.discounts.map(d => ({ ...d, savingPercent: Number(d.savingPercent) })) };
+    discounts: row.discounts?.map(d => ({ ...d, savingPercent: Number(d.savingPercent) })) };
 }
 
 export function enforceListingTypes<T>(listings: (T & IEnforcableProps & { priceWithTax: number })[])
