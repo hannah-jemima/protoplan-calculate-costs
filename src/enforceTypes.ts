@@ -1,4 +1,4 @@
-import { IBundleSaving, TSavingRow } from '@protoplan/types';
+import { IBundleSaving, IDiscount, TSavingRow } from '@protoplan/types';
 
 interface IEnforceTypesBase
 {
@@ -12,6 +12,7 @@ interface IEnforceTypesBase
   amountUnit: string,
   scrapeTime?: Date | null,
   basketLimit?: number | null,
+  discounts: IDiscount[]
 }
 
 export interface IEnforcableTypes extends IEnforceTypesBase
@@ -51,7 +52,8 @@ function enforceProtocolRowTypes<T>(row: T & IEnforcableTypes)
     amountUnit: String(row.amountUnit),
     scrapeTime: row.scrapeTime ? new Date(row.scrapeTime) : row.scrapeTime,
     basketLimit: row.basketLimit ? Number(row.basketLimit) : row.basketLimit,
-    inaccessible: row.inaccessible === 1 };
+    inaccessible: row.inaccessible === 1,
+    discounts: row.discounts.map(d => ({ ...d, savingPercent: Number(d.savingPercent) })) };
 }
 
 export function enforceListingTypes<T>(listings: (T & IEnforcableProps & { priceWithTax: number })[])
