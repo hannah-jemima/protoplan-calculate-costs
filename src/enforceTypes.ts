@@ -35,7 +35,7 @@ export function enforceProtocolTypes<T>(rows: (T & IEnforcableProps)[])
       ...bs,
       replacableRows: bs.replacableRows.map(r => enforceProtocolRowTypes(r)),
       bundle: bs.bundle.map(r => enforceProtocolRowTypes(r)),
-      leftoverProducts: bs.leftoverProducts.map(r => enforceProtocolRowTypes(r)) })) }));
+      leftoverProducts: bs.leftoverProducts.map(r => enforceProtocolRowTypes(r)) })) as IBundleSaving[] | undefined}));
 }
 
 function enforceProtocolRowTypes<T>(row: T & IEnforcableTypes)
