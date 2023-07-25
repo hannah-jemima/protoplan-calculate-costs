@@ -1,28 +1,28 @@
 import {
-  TUnitConversions,
-  TUnits,
-  TProtocolRowCostCalculationData,
-  IDiscount} from "@protoplan/types";
+  IUnitConversion,
+  IUnit,
+  IDosingCostCalculationData,
+  IDiscount } from "@protoplan/types";
 import { retrieveExchangeRate } from "@protoplan/exchange-rates";
 import { getUnitConversionFactor } from "@protoplan/unit-utils";
 
 
-export async function calculateCostsAndRepurchases<T extends TProtocolRowCostCalculationData>(
-  data: T[],
-  units: TUnits,
-  unitConversions: TUnitConversions)
+export async function calculateCostsAndRepurchases<T extends IDosingCostCalculationData>(
+  dosings: T[],
+  units: IUnit[],
+  unitConversions: IUnitConversion[])
 {
-  const protocolWithProductsPerMonth = data.map(row =>
+  const dosingsWithProductsPerMonth = dosings.map(row =>
   {
     const productsPerMonth = calculateProductsPerMonth(row, units, unitConversions);
 
     return { ...row, productsPerMonth };
   });
 
-  const protocolWithCosts = await Promise.all(protocolWithProductsPerMonth.map(async row =>
+  const dosingsWithCosts = await Promise.all(dosingsWithProductsPerMonth.map(async row =>
   {
     const bundleRows = row.bundleId ?
-      protocolWithProductsPerMonth.filter(r => (r.bundleId === row.bundleId)) :
+      dosingsWithProductsPerMonth.filter(r => (r.bundleId === row.bundleId)) :
       [row];
 
     // totalProductsPerMonth represents the total amount to cover all dosings of a bundle product
@@ -67,7 +67,7 @@ export async function calculateCostsAndRepurchases<T extends TProtocolRowCostCal
       feesPerMonth };
   }));
 
-  return protocolWithCosts;
+  return dosingsWithCosts;
 }
 
 export function calculateProductsPerMonth(
@@ -79,8 +79,8 @@ export function calculateProductsPerMonth(
     daysPerMonth: number,
     dose: number,
     doseUnitId: number },
-  units: TUnits,
-  unitConversions: TUnitConversions)
+  units: IUnit[],
+  unitConversions: IUnitConversion[])
 {
   const amount = Number(row.amount);
   const dose = Number(row.dose);
@@ -211,9 +211,9 @@ export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalcula
   return { maxListingsPerOrder, ordersPerMonth, feesPerMonth };
 }
 
-export function sortProtocol(protocol: { priority: number }[])
+export function sortDosings(dosings: { priority: number }[])
 {
-  return protocol.map(r => ({ ...r })).sort((a, b) => a.priority - b.priority);
+  return dosings.map(r => ({ ...r })).sort((a, b) => a.priority - b.priority);
 }
 
 

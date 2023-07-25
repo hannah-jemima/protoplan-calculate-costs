@@ -26,19 +26,19 @@ export interface IEnforcableProps extends IEnforcableTypes
   bundleSavings?: IBundleSaving[] | null
 }
 
-export function enforceProtocolTypes<T>(rows: (T & IEnforcableProps)[])
+export function enforceDosingsTypes<T>(rows: (T & IEnforcableProps)[])
 {
   return rows.map(r => ({
-    ...enforceProtocolRowTypes(r),
-    listingSavings: r.listingSavings?.map(ls => enforceProtocolRowTypes(ls)),
+    ...enforceDosingTypes(r),
+    listingSavings: r.listingSavings?.map(ls => enforceDosingTypes(ls)),
     bundleSavings: r.bundleSavings?.map(bs => ({
       ...bs,
-      replacableRows: bs.replacableRows.map(r => enforceProtocolRowTypes(r)),
-      bundle: bs.bundle.map(r => enforceProtocolRowTypes(r)),
-      leftoverProducts: bs.leftoverProducts.map(r => enforceProtocolRowTypes(r)) })) as IBundleSaving[] | undefined}));
+      replacableRows: bs.replaceableRows.map(r => enforceDosingTypes(r)),
+      bundle: bs.bundle.map(r => enforceDosingTypes(r)),
+      leftoverProducts: bs.leftoverProducts.map(r => enforceDosingTypes(r)) })) as IBundleSaving[] | undefined}));
 }
 
-function enforceProtocolRowTypes<T>(row: T & IEnforcableTypes)
+function enforceDosingTypes<T>(row: T & IEnforcableTypes)
 {
   return {
     ...row,
@@ -58,7 +58,7 @@ function enforceProtocolRowTypes<T>(row: T & IEnforcableTypes)
 
 export function enforceListingTypes<T>(listings: (T & IEnforcableProps & { priceWithTax: number })[])
 {
-  return enforceProtocolTypes(listings).map(l => ({
+  return enforceDosingsTypes(listings).map(l => ({
     ...l,
     priceWithTax: Number(l.priceWithTax) }));
 }

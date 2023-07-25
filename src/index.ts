@@ -3,16 +3,16 @@ import {
   calculateProductsPerMonth,
   calculateListingCost,
   calculatePerOrderFeePerMonth,
-  sortProtocol,
+  sortDosings,
   calculateTotalCosts } from './calculateCosts.js';
-import { enforceProtocolTypes, enforceListingTypes } from './enforceTypes.js';
+import { enforceDosingsTypes, enforceListingTypes } from './enforceTypes.js';
 
 export {
   calculateCostsAndRepurchases,
   calculateProductsPerMonth,
   calculateListingCost,
   calculatePerOrderFeePerMonth,
-  sortProtocol,
+  sortDosings as sortProtocol,
   calculateTotalCosts,
-  enforceProtocolTypes,
+  enforceDosingsTypes as enforceProtocolTypes,
   enforceListingTypes };
