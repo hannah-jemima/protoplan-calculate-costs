@@ -12,7 +12,7 @@ export {
   calculateProductsPerMonth,
   calculateListingCost,
   calculatePerOrderFeePerMonth,
-  sortDosings as sortProtocol,
+  sortDosings,
   calculateTotalCosts,
-  enforceDosingsTypes as enforceProtocolTypes,
+  enforceDosingsTypes,
   enforceListingTypes };
