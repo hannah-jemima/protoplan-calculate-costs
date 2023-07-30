@@ -21,23 +21,15 @@ export async function calculateCostsAndRepurchases<T extends IDosingCostCalculat
 
   const dosingsWithCosts = await Promise.all(dosingsWithProductsPerMonth.map(async row =>
   {
-    console.log("dosingsWithProductsPerMonth", dosingsWithProductsPerMonth?.length);
     const bundleRows = row.bundleId ?
       dosingsWithProductsPerMonth.filter(r => (r.bundleId === row.bundleId)) :
       [row];
-    console.log("dosingsWithProductsPerMonth filter successful", bundleRows?.length);
 
     // totalProductsPerMonth represents the total amount to cover all dosings of a bundle product
     // (required in case bundle product is split across multiple protocol rows for multiple dosing strategies)
-    const totalProductsPerMonth = (productId: number) =>
-    {
-      console.log("bundleRows", row.listingId, bundleRows?.length);
-      const filterResult = bundleRows
-        .filter(r => r.productId === productId)
-        .reduce((pTot, br) => pTot + br.productsPerMonth, 0);
-      console.log("bundleRows filter successful", filterResult);
-      return filterResult;
-    }
+    const totalProductsPerMonth = (productId: number) => bundleRows
+      .filter(r => r.productId === productId)
+      .reduce((pTot, br) => pTot + br.productsPerMonth, 0);
 
     // Proportion of product in this row vs. across all rows
     const amountProportion = row.productsPerMonth / totalProductsPerMonth(row.productId) // of bundle product
@@ -169,11 +161,9 @@ export async function calculateListingCost(row: {
   const salesTax = (row.vendorCountryId === 2 && row.userCountryId === 2 && listingCurrencyCode === "USD") ?
     row.salesTax : 0;
 
-  console.log("row.discounts", row.listingId, row.discounts?.length);
   const discountedPrice = row.discounts
     .filter(d => d.applied)
     .reduce((dp, d) => dp * (100 - d.savingPercent) / 100, price);
-  console.log("row.discounts filter successful", discountedPrice);
 
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
