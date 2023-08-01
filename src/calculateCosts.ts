@@ -174,8 +174,8 @@ export async function calculateListingCost(
   const exchangeRate = await retrieveExchangeRate(
     listingCurrencyCode,
     userCurrencyCode,
-    () => getExchangeRateFromDb(listingCurrencyCode, userCurrencyCode),
-    (rate: number) => storeExchangeRate(listingCurrencyCode, userCurrencyCode, rate));
+    getExchangeRateFromDb,
+    storeExchangeRate);
   const salesTax = (row.vendorCountryId === 2 && row.userCountryId === 2 && listingCurrencyCode === "USD") ?
     row.salesTax : 0;
 
