@@ -10,7 +10,9 @@ import { getUnitConversionFactor } from "@protoplan/unit-utils";
 export async function calculateCostsAndRepurchases<T extends IDosingCostCalculationData>(
   dosings: T[],
   units: IUnit[],
-  unitConversions: IUnitConversion[])
+  unitConversions: IUnitConversion[],
+  getExchangeRateFromDb: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number | null>,
+  storeExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string, exchangeRate: number) => Promise<void>)
 {
   const dosingsWithProductsPerMonth = dosings.map(row =>
   {
@@ -42,7 +44,12 @@ export async function calculateCostsAndRepurchases<T extends IDosingCostCalculat
     const {
       exchangeRate,
       priceWithTax,
-      costPerMonth } = await calculateCostPerMonth({ ...row, listingsPerMonth, amountProportion });
+      costPerMonth } = await calculateCostPerMonth({
+        ...row,
+        listingsPerMonth,
+        amountProportion },
+        getExchangeRateFromDb,
+        storeExchangeRate);
 
     const { maxListingsPerOrder, ordersPerMonth, feesPerMonth } = await calculatePerOrderFeePerMonth({
       ...row,
@@ -105,26 +112,29 @@ function calculateRepurchase(listingsPerMonth: number)
   return (avgDaysPerMonth / listingsPerMonth);
 }
 
-export async function calculateCostPerMonth(row: {
-  listingId: number,
-  nBundleProducts: number,
-  listingsPerMonth: number,
-  bundleId: number | null,
-  quantity: number,
-  price: number,
-  deliveryPerListing: number | null,
-  userCurrencyCode: string,
-  listingCurrencyCode: string,
-  taxPercent: number,
-  baseTax: number,
-  salesTax: number,
-  vendorCountryId: number,
-  userCountryId: number,
-  amountProportion?: number,
-  discounts: IDiscount[] })
+export async function calculateCostPerMonth(
+  row: {
+    listingId: number,
+    nBundleProducts: number,
+    listingsPerMonth: number,
+    bundleId: number | null,
+    quantity: number,
+    price: number,
+    deliveryPerListing: number | null,
+    userCurrencyCode: string,
+    listingCurrencyCode: string,
+    taxPercent: number,
+    baseTax: number,
+    salesTax: number,
+    vendorCountryId: number,
+    userCountryId: number,
+    amountProportion?: number,
+    discounts: IDiscount[] },
+  getExchangeRateFromDb: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number | null>,
+  storeExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string, exchangeRate: number) => Promise<void>)
 {
   // Calculate listing price with per-listing taxes & exchange rate
-  const { exchangeRate, priceWithTax } = await calculateListingCost(row);
+  const { exchangeRate, priceWithTax } = await calculateListingCost(row, getExchangeRateFromDb, storeExchangeRate);
 
   let costPerMonth = (priceWithTax * row.listingsPerMonth) || 0;
 
@@ -138,18 +148,22 @@ export async function calculateCostPerMonth(row: {
   return { exchangeRate: Number(exchangeRate), priceWithTax, costPerMonth };
 }
 
-export async function calculateListingCost(row: {
-  listingId: number,
-  price: number,
-  deliveryPerListing: number | null,
-  userCurrencyCode: string,
-  listingCurrencyCode: string,
-  taxPercent: number,
-  baseTax: number,
-  salesTax: number,
-  vendorCountryId: number,
-  userCountryId: number,
-  discounts: IDiscount[] }, includeBaseTax = false)
+export async function calculateListingCost(
+  row: {
+    listingId: number,
+    price: number,
+    deliveryPerListing: number | null,
+    userCurrencyCode: string,
+    listingCurrencyCode: string,
+    taxPercent: number,
+    baseTax: number,
+    salesTax: number,
+    vendorCountryId: number,
+    userCountryId: number,
+    discounts: IDiscount[] },
+  getExchangeRateFromDb: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number | null>,
+  storeExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string, exchangeRate: number) => Promise<void>,
+  includeBaseTax = false)
 {
   const price = row.price;
   // Amazon - shown on listing page in vendor's currency
@@ -157,7 +171,11 @@ export async function calculateListingCost(row: {
   const userCurrencyCode = row.userCurrencyCode;
   const listingCurrencyCode = row.listingCurrencyCode;
 
-  const exchangeRate = await retrieveExchangeRate(listingCurrencyCode, userCurrencyCode);
+  const exchangeRate = await retrieveExchangeRate(
+    listingCurrencyCode,
+    userCurrencyCode,
+    () => getExchangeRateFromDb(listingCurrencyCode, userCurrencyCode),
+    (rate: number) => storeExchangeRate(listingCurrencyCode, userCurrencyCode, rate));
   const salesTax = (row.vendorCountryId === 2 && row.userCountryId === 2 && listingCurrencyCode === "USD") ?
     row.salesTax : 0;
 
