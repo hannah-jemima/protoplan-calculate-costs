@@ -1,6 +1,6 @@
 {
   "name": "@protoplan/calculate-costs",
-  "version": "9.0.0",
+  "version": "10.0.0",
   "description": "",
   "main": "./lib/index.js",
   "module": "./lib/index.js",
@@ -14,7 +14,7 @@
     "lib/"
   ],
   "dependencies": {
-    "@protoplan/exchange-rates": "^3.0.0",
+    "@protoplan/exchange-rates": "^4.0.0",
     "@protoplan/types": "^33.0.0",
     "@protoplan/unit-utils": "^2.0.0"
   },

@@ -11,7 +11,7 @@ export async function calculateCostsAndRepurchases<T extends IDosingCostCalculat
   dosings: T[],
   units: IUnit[],
   unitConversions: IUnitConversion[],
-  getExchangeRateFromDb: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number | null>,
+  getExchangeRateFromDb: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number | undefined>,
   storeExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string, exchangeRate: number) => Promise<void>)
 {
   const dosingsWithProductsPerMonth = dosings.map(row =>
@@ -130,7 +130,7 @@ export async function calculateCostPerMonth(
     userCountryId: number,
     amountProportion?: number,
     discounts: IDiscount[] },
-  getExchangeRateFromDb: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number | null>,
+  getExchangeRateFromDb: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number | undefined>,
   storeExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string, exchangeRate: number) => Promise<void>)
 {
   // Calculate listing price with per-listing taxes & exchange rate
@@ -161,7 +161,7 @@ export async function calculateListingCost(
     vendorCountryId: number,
     userCountryId: number,
     discounts: IDiscount[] },
-  getExchangeRateFromDb: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number | null>,
+  getExchangeRateFromDb: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number | undefined>,
   storeExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string, exchangeRate: number) => Promise<void>,
   includeBaseTax = false)
 {
