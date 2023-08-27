@@ -4,8 +4,8 @@ import {
   calculateListingCost,
   calculatePerOrderFeePerMonth,
   sortDosings,
-  calculateTotalCosts } from './calculateCosts.js';
-import { enforceDosingsTypes, enforceListingTypes, IEnforcableTypes, IEnforcableProps } from './enforceTypes.js';
+  calculateTotalCosts } from './calculateCosts';
+import { enforceDosingsTypes, enforceListingTypes, IEnforcableTypes, IEnforcableProps } from './enforceTypes';
 
 export {
   calculateCostsAndRepurchases,
