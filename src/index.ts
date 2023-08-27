@@ -4,7 +4,8 @@ import {
   calculateListingCost,
   calculatePerOrderFeePerMonth,
   sortDosings,
-  calculateTotalCosts } from './calculateCosts';
+  calculateTotalCosts,
+  calculateCostPerMonth } from './calculateCosts';
 import { enforceDosingsTypes, enforceListingTypes, IEnforcableTypes, IEnforcableProps } from './enforceTypes';
 
 export {
@@ -14,6 +15,7 @@ export {
   calculatePerOrderFeePerMonth,
   sortDosings,
   calculateTotalCosts,
+  calculateCostPerMonth,
   enforceDosingsTypes,
   enforceListingTypes,
   IEnforcableTypes,
