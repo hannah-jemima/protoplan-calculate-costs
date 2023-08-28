@@ -1,6 +1,6 @@
 {
   "name": "@protoplan/calculate-costs",
-  "version": "13.0.0",
+  "version": "13.0.1",
   "description": "",
   "main": "./lib/index.js",
   "module": "./lib/index.js",
@@ -14,7 +14,7 @@
     "lib/"
   ],
   "dependencies": {
-    "@protoplan/types": "^33.0.0",
+    "@protoplan/types": "^36.2.3",
     "@protoplan/unit-utils": "^2.0.0"
   },
   "devDependencies": {

@@ -5,7 +5,7 @@ import {
   calculatePerOrderFeePerMonth,
   sortDosings,
   calculateTotalCosts,
-  calculateCostPerMonth } from './calculateCosts';
+  calculateCostPerMonth } from './calculateCosts.js';
 
 export {
   calculateCostsAndRepurchases,
