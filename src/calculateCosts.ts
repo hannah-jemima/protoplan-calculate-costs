@@ -1,12 +1,12 @@
 import {
   IUnitConversion,
   IUnit,
-  IDosingCostCalculationData,
+  TDosingCostCalculationData,
   IDiscount } from "@protoplan/types";
 import { getUnitConversionFactor } from "@protoplan/unit-utils";
 
 
-export async function calculateCostsAndRepurchases<T extends IDosingCostCalculationData>(
+export async function calculateCostsAndRepurchases<T extends TDosingCostCalculationData>(
   dosings: T[],
   units: IUnit[],
   unitConversions: IUnitConversion[],
