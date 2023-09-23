@@ -10,7 +10,7 @@ import {
 export {
   calculateCostsAndRepurchases,
   calculateProductsPerMonth,
-  calculateListingCost,
+  calculateListingCost as calculateListingCost,
   calculatePerOrderFeePerMonth,
   sortDosings,
   calculateTotalCosts,

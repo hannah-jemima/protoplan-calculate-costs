@@ -2,7 +2,9 @@ import {
   IUnitConversion,
   IUnit,
   TDosingCostCalculationData,
-  IDiscount } from "@protoplan/types";
+  IDiscount,
+  IDosing,
+  IProductAmount } from "@protoplan/types";
 import { getUnitConversionFactor } from "@protoplan/unit-utils";
 
 
@@ -16,14 +18,15 @@ export async function calculateCostsAndRepurchases<T extends TDosingCostCalculat
   {
     const productsPerMonth = calculateProductsPerMonth(row, units, unitConversions);
 
+    // productsPerMonth represents the total amount required over a month for this row's dosage.
     return { ...row, productsPerMonth };
   });
 
-  const dosingsWithCosts = await Promise.all(dosingsWithProductsPerMonth.map(async row =>
+  const dosingsWithCosts = await Promise.all(dosingsWithProductsPerMonth.map(async d =>
   {
-    const bundleRows = row.bundleId ?
-      dosingsWithProductsPerMonth.filter(r => (r.bundleId === row.bundleId)) :
-      [row];
+    const bundleRows = d.bundleId ?
+      dosingsWithProductsPerMonth.filter(r => (r.bundleId === d.bundleId)) :
+      [d];
 
     // totalProductsPerMonth represents the total amount to cover all dosings of a bundle product
     // (required in case bundle product is split across multiple protocol rows for multiple dosing strategies)
@@ -32,54 +35,31 @@ export async function calculateCostsAndRepurchases<T extends TDosingCostCalculat
       .reduce((pTot, br) => pTot + br.productsPerMonth, 0);
 
     // Proportion of product in this row vs. across all rows
-    const amountProportion = row.productsPerMonth / totalProductsPerMonth(row.productId) // of bundle product
+    const amountProportion = d.productsPerMonth / totalProductsPerMonth(d.productId) // of bundle product
 
     // Listings per month determined by highest amount of product required out of the bundle
-    const listingsPerMonth = Math.max(...bundleRows.map(r => row.productsPerMonth / r.quantity));
+    const listingsPerMonth = Math.max(...bundleRows.map(r => d.productsPerMonth / r.quantity));
 
-    const repurchase = calculateRepurchase(listingsPerMonth);
-
-    const {
-      exchangeRate,
-      priceWithTax,
-      costPerMonth } = await calculateCostPerMonth({
-        ...row,
+    const dosingWithCostPerMonth = await calculateCostPerMonth({
+        ...d,
         listingsPerMonth,
         amountProportion },
       retrieveExchangeRate);
 
-    const { maxListingsPerOrder, ordersPerMonth, feesPerMonth } = await calculatePerOrderFeePerMonth({
-      ...row,
-      exchangeRate,
-      priceWithTax,
-      listingsPerMonth,
-      costPerMonth });
+    const dosingWithFeesPerMonth = await calculatePerOrderFeePerMonth({
+      ...dosingWithCostPerMonth,
+      listingsPerMonth, });
 
-    return {
-      // row.productsPerMonth represents the total amount required over a month for this row's dosage.
-      ...row,
-      listingsPerMonth,
-      repurchase,
-      exchangeRate,
-      priceWithTax,
-      costPerMonth,
-      maxListingsPerOrder,
-      ordersPerMonth,
-      feesPerMonth };
+    const repurchase = calculateRepurchase(listingsPerMonth);
+
+    return { ...dosingWithFeesPerMonth, listingsPerMonth, repurchase };
   }));
 
   return dosingsWithCosts;
 }
 
 export function calculateProductsPerMonth(
-  row: {
-    productId: number,
-    amount: number,
-    amountUnitId: number,
-    dosesPerDay: number,
-    daysPerMonth: number,
-    dose: number,
-    doseUnitId: number },
+  row: { productId: number } & IProductAmount & IDosing,
   units: IUnit[],
   unitConversions: IUnitConversion[])
 {
@@ -109,54 +89,52 @@ function calculateRepurchase(listingsPerMonth: number)
   return (avgDaysPerMonth / listingsPerMonth);
 }
 
-export async function calculateCostPerMonth(
-  row: {
-    listingId: number,
-    nBundleProducts: number,
-    listingsPerMonth: number,
-    bundleId: number | null,
-    quantity: number,
-    price: number,
-    deliveryPerListing: number | null,
-    userCurrencyCode: string,
-    listingCurrencyCode: string,
-    taxPercent: number,
-    baseTax: number,
-    salesTax: number,
-    vendorCountryId: number,
-    userCountryId: number,
-    amountProportion?: number,
-    discounts: IDiscount[] },
+interface IListingQuantity
+{
+  listingId: number,
+  price: number,
+  deliveryPerListing: number | null,
+  userCurrencyCode: string,
+  listingCurrencyCode: string,
+  exchangeRate?: number,
+  taxPercent: number,
+  baseTax: number,
+  salesTax: number,
+  vendorCountryId: number,
+  userCountryId: number,
+  discounts: IDiscount[],
+  listingsPerMonth: number
+}
+
+interface IBundleQuantity
+{
+  bundleId: number | null,
+  quantity: number,
+  nBundleProducts: number,
+  amountProportion?: number,
+}
+
+export async function calculateCostPerMonth<T>(
+  listingQuantity: T & IListingQuantity & IBundleQuantity,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
   // Calculate listing price with per-listing taxes & exchange rate
-  const { exchangeRate, priceWithTax } = await calculateListingCost(row, retrieveExchangeRate);
+  const listingWithPrice = await calculateListingCost(listingQuantity, retrieveExchangeRate);
 
-  let costPerMonth = (priceWithTax * row.listingsPerMonth) || 0;
+  let costPerMonth = (listingWithPrice.priceWithTax * listingQuantity.listingsPerMonth) || 0;
 
   // Apportion costPerMonth by:
   //   - quantity of product in bundle
   //   - the dose proportion of a bundle product in this row, where it is split across multiple rows
   //     (for different dosing dtrategies)
-  if(row.bundleId)
-    costPerMonth *= row.quantity * (row.amountProportion || 1) / row.nBundleProducts;
+  if(listingQuantity.bundleId)
+    costPerMonth *= listingQuantity.quantity * (listingQuantity.amountProportion || 1) / listingQuantity.nBundleProducts;
 
-  return { exchangeRate: Number(exchangeRate), priceWithTax, costPerMonth };
+  return { ...listingWithPrice, costPerMonth };
 }
 
-export async function calculateListingCost(
-  row: {
-    listingId: number,
-    price: number,
-    deliveryPerListing: number | null,
-    userCurrencyCode: string,
-    listingCurrencyCode: string,
-    taxPercent: number,
-    baseTax: number,
-    salesTax: number,
-    vendorCountryId: number,
-    userCountryId: number,
-    discounts: IDiscount[] },
+export async function calculateListingCost<T>(
+  row: T & IListingQuantity,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>,
   includeBaseTax = false)
 {
@@ -166,7 +144,7 @@ export async function calculateListingCost(
   const userCurrencyCode = row.userCurrencyCode;
   const listingCurrencyCode = row.listingCurrencyCode;
 
-  const exchangeRate = await retrieveExchangeRate(listingCurrencyCode, userCurrencyCode);
+  const exchangeRate = row.exchangeRate || await retrieveExchangeRate(listingCurrencyCode, userCurrencyCode);
   const salesTax = (row.vendorCountryId === 2 && row.userCountryId === 2 && listingCurrencyCode === "USD") ?
     row.salesTax : 0;
 
@@ -180,7 +158,7 @@ export async function calculateListingCost(
     (discountedPrice + deliveryPerListing) * (1 + row.taxPercent / 100) * (1 + salesTax / 100) +
     (includeBaseTax ? row.baseTax : 0)) * exchangeRate;
 
-  return { exchangeRate, discountedPrice, priceWithTax };
+  return { ...row, exchangeRate, discountedPrice, priceWithTax };
 }
 
 
@@ -214,7 +192,7 @@ export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalcula
     data.quantity /
     data.nBundleProducts;
 
-  return { maxListingsPerOrder, ordersPerMonth, feesPerMonth };
+  return { ...data, maxListingsPerOrder, ordersPerMonth, feesPerMonth };
 }
 
 export function sortDosings(dosings: { priority: number }[])
