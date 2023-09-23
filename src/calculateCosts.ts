@@ -89,7 +89,7 @@ function calculateRepurchase(listingsPerMonth: number)
   return (avgDaysPerMonth / listingsPerMonth);
 }
 
-interface IListingQuantity
+interface IListingCostCalculationData
 {
   listingId: number,
   price: number,
@@ -103,6 +103,10 @@ interface IListingQuantity
   vendorCountryId: number,
   userCountryId: number,
   discounts: IDiscount[],
+}
+
+interface IListingQuantity
+{
   listingsPerMonth: number
 }
 
@@ -115,7 +119,7 @@ interface IBundleQuantity
 }
 
 export async function calculateCostPerMonth<T>(
-  listingQuantity: T & IListingQuantity & IBundleQuantity,
+  listingQuantity: T & IListingCostCalculationData & IBundleQuantity & IListingQuantity,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
   // Calculate listing price with per-listing taxes & exchange rate
@@ -134,7 +138,7 @@ export async function calculateCostPerMonth<T>(
 }
 
 export async function calculateListingCost<T>(
-  row: T & IListingQuantity,
+  row: T & IListingCostCalculationData,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>,
   includeBaseTax = false)
 {
