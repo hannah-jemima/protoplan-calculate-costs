@@ -3,45 +3,70 @@ import {
   IUnit,
   TDosingCostCalculationData,
   IDiscount,
-  IDosing,
-  IProductAmount } from "@protoplan/types";
+  Dosing,
+  Amount,
+  ListingCostCalculationData } from "@protoplan/types";
 import { getUnitConversionFactor } from "@protoplan/unit-utils";
 
 
-export async function calculateCostsAndRepurchases<T extends TDosingCostCalculationData>(
+export async function calculateCostsAndRepurchases<T extends Partial<TDosingCostCalculationData>>(
   dosings: T[],
   units: IUnit[],
   unitConversions: IUnitConversion[],
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
-  const dosingsWithProductsPerMonth = dosings.map(row =>
+  const dosingsWithCosts = await Promise.all(dosings.map(async d =>
   {
-    const productsPerMonth = calculateProductsPerMonth(row, units, unitConversions);
+    if(
+      d.dose === undefined ||
+      d.doseUnitId === undefined ||
+      d.dosesPerDay === undefined ||
+      d.daysPerMonth === undefined ||
+      d.productId === undefined ||
+      d.quantity === undefined ||
+      d.amount === undefined ||
+      d.amountUnitId === undefined ||
+      d.listingId === undefined ||
+      d.price === undefined ||
+      d.discountedPrice === undefined ||
+      d.deliveryPrice === undefined ||
+      d.userCurrencyCode === undefined ||
+      d.listingCurrencyCode === undefined ||
+      d.taxPercent === undefined ||
+      d.baseTax === undefined ||
+      d.salesTax === undefined ||
+      d.vendorCountryId === undefined ||
+      d.basketLimit === undefined ||
+      d.userCountryId === undefined ||
+      d.nBundleProducts === undefined)
+    {
+      return { ...d, productsPerMonth: undefined, listingsPerMonth: undefined, repurchase: undefined };
+    }
 
     // productsPerMonth represents the total amount required over a month for this row's dosage.
-    return { ...row, productsPerMonth };
-  });
+    const productsPerMonth = calculateProductsPerMonth({
+      ...d as T & TDosingCostCalculationData },
+      units,
+      unitConversions);
 
-  const dosingsWithCosts = await Promise.all(dosingsWithProductsPerMonth.map(async d =>
-  {
     const bundleRows = d.bundleId ?
-      dosingsWithProductsPerMonth.filter(r => (r.bundleId === d.bundleId)) :
-      [d];
+      dosings.map(d => ({ ...d, productsPerMonth })).filter(r => (r.bundleId === d.bundleId)) :
+      [{ ...d, productsPerMonth }];
 
     // totalProductsPerMonth represents the total amount to cover all dosings of a bundle product
     // (required in case bundle product is split across multiple protocol rows for multiple dosing strategies)
     const totalProductsPerMonth = (productId: number) => bundleRows
       .filter(r => r.productId === productId)
-      .reduce((pTot, br) => pTot + br.productsPerMonth, 0);
+      .reduce((pTot, br) => pTot + Number(br.productsPerMonth), 0);
 
     // Proportion of product in this row vs. across all rows
-    const amountProportion = d.productsPerMonth / totalProductsPerMonth(d.productId) // of bundle product
+    const amountProportion = productsPerMonth / totalProductsPerMonth(d.productId) // of bundle product
 
     // Listings per month determined by highest amount of product required out of the bundle
-    const listingsPerMonth = Math.max(...bundleRows.map(r => d.productsPerMonth / r.quantity));
+    const listingsPerMonth = Math.max(...bundleRows.map(r => productsPerMonth / Number(r.quantity)));
 
     const dosingWithCostPerMonth = await calculateCostPerMonth({
-        ...d,
+        ...d as T & ListingCostCalculationData,
         listingsPerMonth,
         amountProportion },
       retrieveExchangeRate);
@@ -52,14 +77,14 @@ export async function calculateCostsAndRepurchases<T extends TDosingCostCalculat
 
     const repurchase = calculateRepurchase(listingsPerMonth);
 
-    return { ...dosingWithFeesPerMonth, listingsPerMonth, repurchase };
+    return { ...dosingWithFeesPerMonth, productsPerMonth, listingsPerMonth, repurchase };
   }));
 
   return dosingsWithCosts;
 }
 
 export function calculateProductsPerMonth(
-  row: { productId: number } & IProductAmount & IDosing,
+  row: { productId: number } & Amount & Dosing,
   units: IUnit[],
   unitConversions: IUnitConversion[])
 {

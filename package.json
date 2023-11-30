@@ -14,7 +14,7 @@
     "lib/"
   ],
   "dependencies": {
-    "@protoplan/types": "^36.2.3",
+    "@protoplan/types": "39.0.1",
     "@protoplan/unit-utils": "^2.0.0"
   },
   "devDependencies": {
