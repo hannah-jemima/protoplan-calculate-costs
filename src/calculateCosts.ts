@@ -247,7 +247,7 @@ export function sortDosings(dosings: { priority: number }[])
 
 
 
-export async function calculateTotalCosts(rows: { costPerMonth: number, feesPerMonth: number }[])
+export async function calculateTotalCosts(rows: { costPerMonth?: number, feesPerMonth?: number }[])
 {
   const costPerMonth = rows.reduce((cost, row) => cost += row.costPerMonth || 0, 0);
   const feesPerMonth = rows.reduce((fees, row) => fees += row.feesPerMonth || 0, 0);
