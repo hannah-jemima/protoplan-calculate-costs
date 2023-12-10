@@ -1,18 +1,15 @@
 import {
-  IUnitConversion,
-  IUnit,
   TDosingCostCalculationData,
   IDiscount,
   Dosing,
   Amount,
   ListingCostCalculationData } from "@protoplan/types";
-import { getUnitConversionFactor } from "@protoplan/unit-utils";
+import Units from "@protoplan/unit-utils/lib/Units";
 
 
 export async function calculateCostsAndRepurchases<T extends Partial<TDosingCostCalculationData>>(
   dosings: T[],
-  units: IUnit[],
-  unitConversions: IUnitConversion[],
+  units: Units,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
   const dosingsWithCosts = await Promise.all(dosings.map(async d =>
@@ -55,10 +52,7 @@ export async function calculateCostsAndRepurchases<T extends Partial<TDosingCost
     }
 
     // productsPerMonth represents the total amount required over a month for this row's dosage.
-    const productsPerMonth = calculateProductsPerMonth({
-      ...d as T & TDosingCostCalculationData },
-      units,
-      unitConversions);
+    const productsPerMonth = calculateProductsPerMonth({ ...d as T & TDosingCostCalculationData }, units);
 
     const bundleRows = d.bundleId ?
       dosings.map(d => ({ ...d, productsPerMonth })).filter(r => (r.bundleId === d.bundleId)) :
@@ -94,27 +88,25 @@ export async function calculateCostsAndRepurchases<T extends Partial<TDosingCost
   return dosingsWithCosts;
 }
 
-export function calculateProductsPerMonth(
-  row: { productId: number } & Amount & Dosing,
-  units: IUnit[],
-  unitConversions: IUnitConversion[])
+export function calculateProductsPerMonth(row: { productId: number } & Amount & Dosing, units: Units)
 {
   const amount = Number(row.amount);
   const dose = Number(row.dose);
   const dosesPerDay = Number(row.dosesPerDay);
   const daysPerMonth = Number(row.daysPerMonth);
-  const unitConversionFactor = getUnitConversionFactor(
-    row.doseUnitId,
-    row.amountUnitId,
-    [row.productId],
-    units,
-    unitConversions);
+  const unitConversionFactor = units.getFactor(row.doseUnitId, row.amountUnitId, row.productId);
+  if(!unitConversionFactor)
+  {
+    console.error("calculateProductsPerMonth: no unit conversion factor found " +
+      "fromUnitId", row.doseUnitId,
+      "toUnitId", row.amountUnitId)
+  }
 
   return (
     dose *
     dosesPerDay *
     daysPerMonth *
-    unitConversionFactor /
+    (unitConversionFactor || 1) /
     amount);
 }
 
