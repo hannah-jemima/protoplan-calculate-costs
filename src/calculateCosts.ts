@@ -2,9 +2,9 @@ import {
   TDosingCostCalculationData,
   IDiscount,
   Dosing,
-  Amount,
-  ListingCostCalculationData } from "@protoplan/types";
+  Amount } from "@protoplan/types";
 import Units from "@protoplan/unit-utils/lib/Units";
+
 
 
 export async function calculateCostsAndRepurchases<T extends Partial<TDosingCostCalculationData>>(
@@ -12,26 +12,36 @@ export async function calculateCostsAndRepurchases<T extends Partial<TDosingCost
   units: Units,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
-  const dosingsWithCosts = await Promise.all(dosings.map(async d =>
+  const dosingsWithListings = dosings
+    .reduce((ds, d1) =>
+    {
+      const dWithListing = getDosingWithListing(d1);
+      if(!dWithListing)
+        return ds;
+
+      return ds.concat(dWithListing);
+    }, <(T & TDosingCostCalculationData)[]>[]);
+
+  const dosingsWithCosts = await Promise.all(dosings.map(async dosing =>
   {
+    const dosingWithListing = getDosingWithListing(dosing);
+    if(!dosingWithListing)
+      return dosing;
+
     // productsPerMonth represents the total amount required over a month for this row's dosage.
-    const productsPerMonth = calculateProductsPerMonth({ ...d as T & TDosingCostCalculationData }, units);
+    const productsPerMonth = calculateProductsPerMonth(dosingWithListing, units);
 
-    const bundleRows = d.bundleId ?
-      dosings.map(d => ({ ...d, productsPerMonth })).filter(r => (r.bundleId === d.bundleId)) :
-      [{ ...d, productsPerMonth }];
+    const bundleRows = dosingWithListing.bundleId ? dosingsWithListings
+      .map(d1 => ({ ...d1, productsPerMonth }))
+      .filter(r => (r.bundleId === dosingWithListing.bundleId)) : undefined;
 
-    return await calculateCostAndRepurchase(d, units, retrieveExchangeRate, bundleRows);
+    return await calculateCostAndRepurchase(dosingWithListing, units, retrieveExchangeRate, bundleRows);
   }));
 
   return dosingsWithCosts;
 }
 
-export async function calculateCostAndRepurchase<T extends Partial<TDosingCostCalculationData>>(
-  dosing: T,
-  units: Units,
-  retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>,
-  bundleRows?: (T & { productsPerMonth: number })[])
+function getDosingWithListing<T extends Partial<TDosingCostCalculationData>>(dosing: T)
 {
   if(
     !dosing.listingId ||
@@ -47,38 +57,41 @@ export async function calculateCostAndRepurchase<T extends Partial<TDosingCostCa
     !dosing.listingId ||
     dosing.price === undefined ||
     dosing.deliveryPrice === undefined ||
+    dosing.basketLimit === undefined ||
     !dosing.userCurrencyCode ||
     !dosing.listingCurrencyCode ||
     !dosing.vendorCountryId ||
     !dosing.userCountryId ||
     !dosing.nBundleProducts)
   {
-    return {
-      ...dosing,
-      productsPerMonth: null,
-      listingsPerMonth: null,
-      repurchase: null,
-      costPerMonth: null,
-      maxListingsPerOrder: null,
-      ordersPerMonth: null,
-      feesPerMonth: null,
-      exchangeRate: null,
-      priceWithTax: null };
+    return;
   }
 
-  const dosingWithListing = {
+  return ({
     ...dosing,
     listingId: Number(dosing.listingId),
     productId: Number(dosing.productId),
     amount: Number(dosing.amount),
     amountUnitId: Number(dosing.amountUnitId),
+    price: Number(dosing.price),
     dose: Number(dosing.dose),
     doseUnitId: Number(dosing.doseUnitId),
     dosesPerDay: Number(dosing.dosesPerDay),
-    daysPerMonth: Number(dosing.daysPerMonth) };
+    daysPerMonth: Number(dosing.daysPerMonth),
+    vendorCountryId: Number(dosing.vendorCountryId),
+    listingCurrencyCode: String(dosing.listingCurrencyCode),
+    userCountryId: Number(dosing.userCountryId),
+    userCurrencyCode: String(dosing.userCurrencyCode) });
+}
 
+export async function calculateCostAndRepurchase<T extends TDosingCostCalculationData>(
+  dosing: T,
+  units: Units,
+  retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>,
+  bundleRows?: (T & { productsPerMonth: number })[])
+{
   // Represents the total amount required over a month for this row's dosage.
-  const productsPerMonth = calculateProductsPerMonth(dosingWithListing, units);
+  const productsPerMonth = calculateProductsPerMonth(dosing, units);
 
   const rowsInBundle = bundleRows || [{ ...dosing, productsPerMonth }];
 
@@ -95,7 +108,7 @@ export async function calculateCostAndRepurchase<T extends Partial<TDosingCostCa
   const listingsPerMonth = Math.max(...rowsInBundle.map(r => productsPerMonth / Number(r.quantity)));
 
   const dosingWithCostPerMonth = await calculateCostPerMonth({
-      ...dosing as T & ListingCostCalculationData,
+      ...dosing,
       listingsPerMonth,
       amountProportion },
     retrieveExchangeRate);
@@ -142,16 +155,16 @@ interface IListingCostCalculationData
 {
   listingId: number,
   price: number,
-  deliveryPerListing: number | null,
+  deliveryPerListing?: number | null,
   userCurrencyCode: string,
   listingCurrencyCode: string,
   exchangeRate?: number,
-  taxPercent: number,
-  baseTax: number,
-  salesTax: number,
+  taxPercent?: number,
+  baseTax?: number,
+  salesTax?: number,
   vendorCountryId: number,
   userCountryId: number,
-  discounts: IDiscount[],
+  discounts?: IDiscount[],
 }
 
 interface IListingQuantity
@@ -168,7 +181,7 @@ interface IBundleQuantity
 }
 
 export async function calculateCostPerMonth<T>(
-  listingQuantity: T & IListingCostCalculationData & IBundleQuantity & IListingQuantity,
+  listingQuantity: T & IListingCostCalculationData & Partial<IBundleQuantity> & IListingQuantity,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
   // Calculate listing price with per-listing taxes & exchange rate
@@ -181,7 +194,12 @@ export async function calculateCostPerMonth<T>(
   //   - the dose proportion of a bundle product in this row, where it is split across multiple rows
   //     (for different dosing dtrategies)
   if(listingQuantity.bundleId)
-    costPerMonth *= listingQuantity.quantity * (listingQuantity.amountProportion || 1) / listingQuantity.nBundleProducts;
+  {
+    costPerMonth *=
+      (listingQuantity.quantity || 1) *
+      (listingQuantity.amountProportion || 1) /
+      (listingQuantity.nBundleProducts || 1);
+  }
 
   return { ...listingWithPrice, costPerMonth };
 }
@@ -194,22 +212,26 @@ export async function calculateListingCost<T>(
   const price = row.price;
   // Amazon - shown on listing page in vendor's currency
   const deliveryPerListing = row.deliveryPerListing || 0;
+  const baseTax = row.baseTax || 0;
+  const taxPercent = row.taxPercent || 0;
   const userCurrencyCode = row.userCurrencyCode;
   const listingCurrencyCode = row.listingCurrencyCode;
-
   const exchangeRate = row.exchangeRate || await retrieveExchangeRate(listingCurrencyCode, userCurrencyCode);
-  const salesTax = (row.vendorCountryId === 2 && row.userCountryId === 2 && listingCurrencyCode === "USD") ?
-    row.salesTax : 0;
+  const salesTax = (
+    row.vendorCountryId === 2 &&
+    row.userCountryId === 2 &&
+    listingCurrencyCode === "USD" &&
+    row.salesTax) ? row.salesTax : 0;
 
-  const discountedPrice = row.discounts
+  const discountedPrice = row.discounts ? row.discounts
     .filter(d => d.applied)
-    .reduce((dp, d) => dp * (100 - d.savingPercent) / 100, price);
+    .reduce((dp, d) => dp * (100 - d.savingPercent) / 100, price) : price;
 
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
   const priceWithTax = (
-    (discountedPrice + deliveryPerListing) * (1 + row.taxPercent / 100) * (1 + salesTax / 100) +
-    (includeBaseTax ? row.baseTax : 0)) * exchangeRate;
+    (discountedPrice + deliveryPerListing) * (1 + taxPercent / 100) * (1 + salesTax / 100) +
+    (includeBaseTax ? baseTax : 0)) * exchangeRate;
 
   return { ...row, exchangeRate, discountedPrice, priceWithTax };
 }
@@ -223,27 +245,27 @@ export async function calculateListingCost<T>(
 
 type TOrderFeeCalculationData = {
   exchangeRate: number,
-  quantity: number,
-  nBundleProducts: number,
-  deliveryPrice: number,
-  basketLimit: number,
+  quantity?: number,
+  nBundleProducts?: number,
+  deliveryPrice?: number,
+  basketLimit?: number,
   priceWithTax: number,
-  baseTax: number,
+  baseTax?: number,
   listingsPerMonth: number };
 
 // Accounting for per-order charges (delivery, base tax, customs), would it be cheaper?
 export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalculationData)
 {
-  const maxListingsPerOrder = Math.floor(data.basketLimit / data.priceWithTax) || 1;
+  const maxListingsPerOrder = data.basketLimit ? Math.floor(data.basketLimit / data.priceWithTax) || 1 : 1;
   const ordersPerMonth = data.listingsPerMonth / maxListingsPerOrder;
 
   // Delivery price shown in vendor's currency, base tax shown in user's currency
   // Fees per month calculated in user's currency
   const feesPerMonth =
-    (Number(data.deliveryPrice) * data.exchangeRate + data.baseTax) *
+    (Number(data.deliveryPrice) * data.exchangeRate + Number(data.baseTax)) *
     ordersPerMonth *
-    data.quantity /
-    data.nBundleProducts;
+    (data.quantity || 1) /
+    (data.nBundleProducts || 1);
 
   return { ...data, maxListingsPerOrder, ordersPerMonth, feesPerMonth };
 }
