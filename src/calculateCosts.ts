@@ -14,43 +14,6 @@ export async function calculateCostsAndRepurchases<T extends Partial<TDosingCost
 {
   const dosingsWithCosts = await Promise.all(dosings.map(async d =>
   {
-    if(
-      d.dose === undefined ||
-      d.doseUnitId === undefined ||
-      d.dosesPerDay === undefined ||
-      d.daysPerMonth === undefined ||
-      d.productId === undefined ||
-      d.quantity === undefined ||
-      d.amount === undefined ||
-      d.amountUnitId === undefined ||
-      d.listingId === undefined ||
-      d.price === undefined ||
-      d.discountedPrice === undefined ||
-      d.deliveryPrice === undefined ||
-      d.userCurrencyCode === undefined ||
-      d.listingCurrencyCode === undefined ||
-      d.taxPercent === undefined ||
-      d.baseTax === undefined ||
-      d.salesTax === undefined ||
-      d.vendorCountryId === undefined ||
-      d.basketLimit === undefined ||
-      d.userCountryId === undefined ||
-      d.nBundleProducts === undefined)
-    {
-      return {
-        ...d,
-        productsPerMonth: undefined,
-        listingsPerMonth: undefined,
-        repurchase: undefined,
-        costPerMonth: undefined,
-        maxListingsPerOrder: undefined,
-        ordersPerMonth: undefined,
-        feesPerMonth: undefined,
-        exchangeRate: undefined,
-        discountedPrice: undefined,
-        priceWithTax: undefined };
-    }
-
     // productsPerMonth represents the total amount required over a month for this row's dosage.
     const productsPerMonth = calculateProductsPerMonth({ ...d as T & TDosingCostCalculationData }, units);
 
@@ -58,34 +21,92 @@ export async function calculateCostsAndRepurchases<T extends Partial<TDosingCost
       dosings.map(d => ({ ...d, productsPerMonth })).filter(r => (r.bundleId === d.bundleId)) :
       [{ ...d, productsPerMonth }];
 
-    // totalProductsPerMonth represents the total amount to cover all dosings of a bundle product
-    // (required in case bundle product is split across multiple protocol rows for multiple dosing strategies)
-    const totalProductsPerMonth = (productId: number) => bundleRows
-      .filter(r => r.productId === productId)
-      .reduce((pTot, br) => pTot + Number(br.productsPerMonth), 0);
-
-    // Proportion of product in this row vs. across all rows
-    const amountProportion = productsPerMonth / totalProductsPerMonth(d.productId) // of bundle product
-
-    // Listings per month determined by highest amount of product required out of the bundle
-    const listingsPerMonth = Math.max(...bundleRows.map(r => productsPerMonth / Number(r.quantity)));
-
-    const dosingWithCostPerMonth = await calculateCostPerMonth({
-        ...d as T & ListingCostCalculationData,
-        listingsPerMonth,
-        amountProportion },
-      retrieveExchangeRate);
-
-    const dosingWithFeesPerMonth = await calculatePerOrderFeePerMonth({
-      ...dosingWithCostPerMonth,
-      listingsPerMonth, });
-
-    const repurchase = calculateRepurchase(listingsPerMonth);
-
-    return { ...dosingWithFeesPerMonth, productsPerMonth, listingsPerMonth, repurchase };
+    return await calculateCostAndRepurchase(d, units, retrieveExchangeRate, bundleRows);
   }));
 
   return dosingsWithCosts;
+}
+
+export async function calculateCostAndRepurchase<T extends Partial<TDosingCostCalculationData>>(
+  dosing: T,
+  units: Units,
+  retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>,
+  bundleRows?: (T & { productsPerMonth: number })[])
+{
+  if(
+    !dosing.listingId ||
+    !dosing.productId ||
+    dosing.dose === undefined ||
+    dosing.doseUnitId === undefined ||
+    dosing.dosesPerDay === undefined ||
+    dosing.daysPerMonth === undefined ||
+    !dosing.productId ||
+    !dosing.quantity ||
+    !dosing.amount ||
+    !dosing.amountUnitId ||
+    !dosing.listingId ||
+    dosing.price === undefined ||
+    dosing.deliveryPrice === undefined ||
+    !dosing.userCurrencyCode ||
+    !dosing.listingCurrencyCode ||
+    !dosing.vendorCountryId ||
+    !dosing.userCountryId ||
+    !dosing.nBundleProducts)
+  {
+    return {
+      ...dosing,
+      productsPerMonth: null,
+      listingsPerMonth: null,
+      repurchase: null,
+      costPerMonth: null,
+      maxListingsPerOrder: null,
+      ordersPerMonth: null,
+      feesPerMonth: null,
+      exchangeRate: null,
+      priceWithTax: null };
+  }
+
+  const dosingWithListing = {
+    ...dosing,
+    listingId: Number(dosing.listingId),
+    productId: Number(dosing.productId),
+    amount: Number(dosing.amount),
+    amountUnitId: Number(dosing.amountUnitId),
+    dose: Number(dosing.dose),
+    doseUnitId: Number(dosing.doseUnitId),
+    dosesPerDay: Number(dosing.dosesPerDay),
+    daysPerMonth: Number(dosing.daysPerMonth) };
+
+  // Represents the total amount required over a month for this row's dosage.
+  const productsPerMonth = calculateProductsPerMonth(dosingWithListing, units);
+
+  const rowsInBundle = bundleRows || [{ ...dosing, productsPerMonth }];
+
+  // Represents the total amount to cover all dosings of a bundle product
+  // (required in case bundle product is split across multiple protocol rows for multiple dosing strategies)
+  const totalProductsPerMonth = rowsInBundle
+    .filter(r => r.productId === dosing.productId)
+    .reduce((pTot, br) => pTot + Number(br.productsPerMonth), 0);
+
+  // Proportion of product in this row vs. across all rows
+  const amountProportion = productsPerMonth / totalProductsPerMonth // of bundle product
+
+  // Listings per month determined by highest amount of product required out of the bundle
+  const listingsPerMonth = Math.max(...rowsInBundle.map(r => productsPerMonth / Number(r.quantity)));
+
+  const dosingWithCostPerMonth = await calculateCostPerMonth({
+      ...dosing as T & ListingCostCalculationData,
+      listingsPerMonth,
+      amountProportion },
+    retrieveExchangeRate);
+
+  const dosingWithFeesPerMonth = await calculatePerOrderFeePerMonth({
+    ...dosingWithCostPerMonth,
+    listingsPerMonth, });
+
+  const repurchase = calculateRepurchase(listingsPerMonth);
+
+  return { ...dosingWithFeesPerMonth, productsPerMonth, listingsPerMonth, repurchase };
 }
 
 export function calculateProductsPerMonth(row: { productId: number } & Amount & Dosing, units: Units)
