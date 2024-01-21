@@ -26,7 +26,19 @@ export async function calculateCostsAndRepurchases<T extends Partial<TDosingCost
   {
     const dosingWithListing = getDosingWithListing(dosing);
     if(!dosingWithListing)
-      return dosing;
+    {
+      return ({
+        dosing,
+        productsPerMonth: undefined,
+        listingsPerMonth: undefined,
+        repurchase: undefined,
+        costPerMonth: undefined,
+        maxListingsPerOrder: undefined,
+        ordersPerMonth: undefined,
+        feesPerMonth: undefined,
+        exchangeRate: undefined,
+        priceWithTax: undefined });
+    }
 
     // productsPerMonth represents the total amount required over a month for this row's dosage.
     const productsPerMonth = calculateProductsPerMonth(dosingWithListing, units);
