@@ -28,7 +28,7 @@ export async function calculateCostsAndRepurchases<T extends Partial<TDosingCost
     if(!dosingWithListing)
     {
       return ({
-        dosing,
+        ...dosing,
         productsPerMonth: undefined,
         listingsPerMonth: undefined,
         repurchase: undefined,
