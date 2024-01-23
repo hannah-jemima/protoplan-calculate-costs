@@ -37,7 +37,8 @@ export async function calculateCostsAndRepurchases<T extends Partial<TDosingCost
         ordersPerMonth: undefined,
         feesPerMonth: undefined,
         exchangeRate: undefined,
-        priceWithTax: undefined });
+        priceWithTax: undefined,
+        discountedPrice: undefined });
     }
 
     // productsPerMonth represents the total amount required over a month for this row's dosage.
