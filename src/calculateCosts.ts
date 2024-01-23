@@ -259,7 +259,7 @@ type TOrderFeeCalculationData = {
   exchangeRate: number,
   quantity?: number,
   nBundleProducts?: number,
-  deliveryPrice?: number,
+  deliveryPrice?: number | null,
   basketLimit?: number,
   priceWithTax: number,
   baseTax?: number,
