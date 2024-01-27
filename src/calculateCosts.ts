@@ -168,7 +168,7 @@ interface IListingCostCalculationData
 {
   listingId: number,
   price: number,
-  deliveryPerListing?: number | null,
+  deliveryPerListing?: number,
   userCurrencyCode: string,
   listingCurrencyCode: string,
   exchangeRate?: number,
@@ -187,7 +187,7 @@ interface IListingQuantity
 
 interface IBundleQuantity
 {
-  bundleId: number | null,
+  bundleId?: number,
   quantity: number,
   nBundleProducts: number,
   amountProportion?: number,
@@ -260,7 +260,7 @@ type TOrderFeeCalculationData = {
   exchangeRate: number,
   quantity?: number,
   nBundleProducts?: number,
-  deliveryPrice?: number | null,
+  deliveryPrice?: number,
   basketLimit?: number,
   priceWithTax: number,
   baseTax?: number,
