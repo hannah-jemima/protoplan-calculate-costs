@@ -63,19 +63,13 @@ function getDosingWithListing<T extends Partial<TDosingCostCalculationData>>(dos
     dosing.doseUnitId === undefined ||
     dosing.dosesPerDay === undefined ||
     dosing.daysPerMonth === undefined ||
-    !dosing.productId ||
-    !dosing.quantity ||
     !dosing.amount ||
     !dosing.amountUnitId ||
-    !dosing.listingId ||
     dosing.price === undefined ||
-    dosing.deliveryPrice === undefined ||
-    dosing.basketLimit === undefined ||
     !dosing.userCurrencyCode ||
     !dosing.listingCurrencyCode ||
     !dosing.vendorCountryId ||
-    !dosing.userCountryId ||
-    !dosing.nBundleProducts)
+    !dosing.userCountryId)
   {
     return;
   }
@@ -118,7 +112,7 @@ export async function calculateCostAndRepurchase<T extends TDosingCostCalculatio
   const amountProportion = productsPerMonth / totalProductsPerMonth // of bundle product
 
   // Listings per month determined by highest amount of product required out of the bundle
-  const listingsPerMonth = Math.max(...rowsInBundle.map(r => productsPerMonth / Number(r.quantity)));
+  const listingsPerMonth = Math.max(...rowsInBundle.map(r => productsPerMonth / (r.quantity || 1)));
 
   const dosingWithCostPerMonth = await calculateCostPerMonth({
       ...dosing,
