@@ -270,19 +270,6 @@ export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalcula
     (data.quantity || 1) /
     (data.nBundleProducts || 1);
 
-  console.log(
-    "deliveryPrice", data.deliveryPrice || 0,
-    "exchangeRate", data.exchangeRate,
-    "baseTax", data.baseTax || 0,
-    "ordersPerMonth", ordersPerMonth,
-    "quantity", data.quantity,
-    "nBundleProducts", data.nBundleProducts,
-    "nBundleProducts || 1", (data.nBundleProducts || 1),
-    "basketLimit",data.basketLimit,
-    "priceWithTax", data.priceWithTax,
-    "listingsPerMonth", data.listingsPerMonth,
-    "feesPerMonth", feesPerMonth);
-
   return { ...data, maxListingsPerOrder, ordersPerMonth, feesPerMonth };
 }
 
