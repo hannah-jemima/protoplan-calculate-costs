@@ -131,10 +131,6 @@ export async function calculateCostAndRepurchase<T extends TDosingCostCalculatio
 
 export function calculateProductsPerMonth(row: { productId: number } & Amount & Dosing, units: Units)
 {
-  const amount = Number(row.amount);
-  const dose = Number(row.dose);
-  const dosesPerDay = Number(row.dosesPerDay);
-  const daysPerMonth = Number(row.daysPerMonth);
   const unitConversionFactor = units.getFactor(row.doseUnitId, row.amountUnitId, row.productId);
   if(!unitConversionFactor)
   {
@@ -144,11 +140,11 @@ export function calculateProductsPerMonth(row: { productId: number } & Amount & 
   }
 
   return (
-    dose *
-    dosesPerDay *
-    daysPerMonth *
+    row.dose *
+    row.dosesPerDay *
+    row.daysPerMonth *
     (unitConversionFactor || 1) /
-    amount);
+    row.amount);
 }
 
 function calculateRepurchase(listingsPerMonth: number)
@@ -269,15 +265,15 @@ export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalcula
   // Delivery price shown in vendor's currency, base tax shown in user's currency
   // Fees per month calculated in user's currency
   const feesPerMonth =
-    (Number(data.deliveryPrice) * data.exchangeRate + Number(data.baseTax)) *
+    ((data.deliveryPrice || 0) * data.exchangeRate + (data.baseTax || 0)) *
     ordersPerMonth *
     (data.quantity || 1) /
     (data.nBundleProducts || 1);
 
   console.log(
-    "deliveryPrice", data.deliveryPrice,
+    "deliveryPrice", data.deliveryPrice || 0,
     "exchangeRate", data.exchangeRate,
-    "baseTax", Number(data.baseTax),
+    "baseTax", data.baseTax || 0,
     "ordersPerMonth", ordersPerMonth,
     "quantity", data.quantity,
     "nBundleProducts", data.nBundleProducts,
