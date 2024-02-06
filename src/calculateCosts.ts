@@ -42,7 +42,7 @@ export async function calculateCostsAndRepurchases<T extends Partial<TDosingCost
     }
 
     // productsPerMonth represents the total amount required over a month for this row's dosage.
-    const productsPerMonth = calculateProductsPerMonth(dosingWithListing, units);
+    const productsPerMonth = await calculateProductsPerMonth(dosingWithListing, units);
 
     const bundleRows = dosingWithListing.bundleId ? dosingsWithListings
       .map(d1 => ({ ...d1, productsPerMonth }))
@@ -98,7 +98,7 @@ export async function calculateCostAndRepurchase<T extends TDosingCostCalculatio
   bundleRows?: (T & { productsPerMonth: number })[])
 {
   // Represents the total amount required over a month for this row's dosage.
-  const productsPerMonth = calculateProductsPerMonth(dosing, units);
+  const productsPerMonth = await calculateProductsPerMonth(dosing, units);
 
   const rowsInBundle = bundleRows || [{ ...dosing, productsPerMonth }];
 
@@ -129,9 +129,9 @@ export async function calculateCostAndRepurchase<T extends TDosingCostCalculatio
   return { ...dosingWithFeesPerMonth, productsPerMonth, listingsPerMonth, repurchase };
 }
 
-export function calculateProductsPerMonth(row: { productId: number } & Amount & Dosing, units: Units)
+export async function calculateProductsPerMonth(row: { productId: number } & Amount & Dosing, units: Units)
 {
-  const unitConversionFactor = units.getFactor(row.doseUnitId, row.amountUnitId, row.productId);
+  const unitConversionFactor = await units.getFactor(row.doseUnitId, row.amountUnitId, [row.productId]);
   if(!unitConversionFactor)
   {
     console.error("calculateProductsPerMonth: no unit conversion factor found " +
