@@ -1,15 +1,13 @@
 import {
-  TDosingCostCalculationData,
   IDiscount,
   Dosing,
-  Amount } from "@protoplan/types";
-import Units from "@protoplan/unit-utils/lib/Units";
+  Amount,
+  DosingCostCalculationData } from "@protoplan/types";
 
 
 
-export async function calculateCostsAndRepurchases<T extends Partial<TDosingCostCalculationData>>(
+export async function calculateCostsAndRepurchases<T extends Partial<DosingCostCalculationData>>(
   dosings: T[],
-  units: Units,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
   const dosingsWithListings = dosings
@@ -20,7 +18,7 @@ export async function calculateCostsAndRepurchases<T extends Partial<TDosingCost
         return ds;
 
       return ds.concat(dWithListing);
-    }, <(T & TDosingCostCalculationData)[]>[]);
+    }, <(T & DosingCostCalculationData)[]>[]);
 
   const dosingsWithCosts = await Promise.all(dosings.map(async dosing =>
   {
@@ -42,19 +40,19 @@ export async function calculateCostsAndRepurchases<T extends Partial<TDosingCost
     }
 
     // productsPerMonth represents the total amount required over a month for this row's dosage.
-    const productsPerMonth = await calculateProductsPerMonth(dosingWithListing, units);
+    const productsPerMonth = await calculateProductsPerMonth(dosingWithListing);
 
     const bundleRows = dosingWithListing.bundleId ? dosingsWithListings
       .map(d1 => ({ ...d1, productsPerMonth }))
       .filter(r => (r.bundleId === dosingWithListing.bundleId)) : undefined;
 
-    return await calculateCostAndRepurchase(dosingWithListing, units, retrieveExchangeRate, bundleRows);
+    return await calculateCostAndRepurchase(dosingWithListing, retrieveExchangeRate, bundleRows);
   }));
 
   return dosingsWithCosts;
 }
 
-function getDosingWithListing<T extends Partial<TDosingCostCalculationData>>(dosing: T)
+function getDosingWithListing<T extends Partial<DosingCostCalculationData>>(dosing: T)
 {
   if(
     !dosing.listingId ||
@@ -63,9 +61,11 @@ function getDosingWithListing<T extends Partial<TDosingCostCalculationData>>(dos
     dosing.doseUnitId === undefined ||
     dosing.dosesPerDay === undefined ||
     dosing.daysPerMonth === undefined ||
+    !dosing.factor ||
     !dosing.amount ||
     !dosing.amountUnitId ||
     dosing.price === undefined ||
+    !dosing.basketLimit ||
     !dosing.userCurrencyCode ||
     !dosing.listingCurrencyCode ||
     !dosing.vendorCountryId ||
@@ -81,24 +81,25 @@ function getDosingWithListing<T extends Partial<TDosingCostCalculationData>>(dos
     amount: Number(dosing.amount),
     amountUnitId: Number(dosing.amountUnitId),
     price: Number(dosing.price),
+    factor: Number(dosing.factor),
     dose: Number(dosing.dose),
     doseUnitId: Number(dosing.doseUnitId),
     dosesPerDay: Number(dosing.dosesPerDay),
     daysPerMonth: Number(dosing.daysPerMonth),
+    basketLimit: Number(dosing.basketLimit),
     vendorCountryId: Number(dosing.vendorCountryId),
     listingCurrencyCode: String(dosing.listingCurrencyCode),
     userCountryId: Number(dosing.userCountryId),
     userCurrencyCode: String(dosing.userCurrencyCode) });
 }
 
-export async function calculateCostAndRepurchase<T extends TDosingCostCalculationData>(
+export async function calculateCostAndRepurchase<T extends DosingCostCalculationData>(
   dosing: T,
-  units: Units,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>,
   bundleRows?: (T & { productsPerMonth: number })[])
 {
   // Represents the total amount required over a month for this row's dosage.
-  const productsPerMonth = await calculateProductsPerMonth(dosing, units);
+  const productsPerMonth = await calculateProductsPerMonth(dosing);
 
   const rowsInBundle = bundleRows || [{ ...dosing, productsPerMonth }];
 
@@ -129,21 +130,13 @@ export async function calculateCostAndRepurchase<T extends TDosingCostCalculatio
   return { ...dosingWithFeesPerMonth, productsPerMonth, listingsPerMonth, repurchase };
 }
 
-export async function calculateProductsPerMonth(row: { productId: number } & Amount & Dosing, units: Units)
+export async function calculateProductsPerMonth(row: { productId: number, factor: number } & Amount & Dosing)
 {
-  const unitConversionFactor = await units.getFactor(row.doseUnitId, row.amountUnitId, [row.productId]);
-  if(!unitConversionFactor)
-  {
-    console.error("calculateProductsPerMonth: no unit conversion factor found " +
-      "fromUnitId", row.doseUnitId,
-      "toUnitId", row.amountUnitId)
-  }
-
   return (
     row.dose *
     row.dosesPerDay *
     row.daysPerMonth *
-    (unitConversionFactor || 1) /
+    (row.factor || 1) /
     row.amount);
 }
 
