@@ -104,13 +104,13 @@ export async function calculateCostAndRepurchase<T extends DosingCostCalculation
   const rowsInBundle = bundleRows || [{ ...dosing, productsPerMonth }];
 
   // Represents the total amount to cover all dosings of a bundle product
-  // (required in case bundle product is split across multiple protocol rows for multiple dosing strategies)
-  const totalProductsPerMonth = rowsInBundle
-    .filter(r => r.productId === dosing.productId)
+  // (required in case bundle product is split across multiple protocol rows)
+  const bundleProductsPerMonth = rowsInBundle
+    .filter(r => r.listingId === dosing.listingId)
     .reduce((pTot, br) => pTot + Number(br.productsPerMonth), 0);
 
   // Proportion of product in this row vs. across all rows
-  const amountProportion = productsPerMonth / totalProductsPerMonth // of bundle product
+  const amountProportion = productsPerMonth / bundleProductsPerMonth
 
   // Listings per month determined by highest amount of product required out of the bundle
   const listingsPerMonth = Math.max(...rowsInBundle.map(r => productsPerMonth / (r.quantity || 1)));
