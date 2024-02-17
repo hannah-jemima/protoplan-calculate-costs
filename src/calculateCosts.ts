@@ -50,7 +50,7 @@ export async function calculateCostsAndRepurchases<
     // Only show cost for highest priority row in bundle
     const rowsInBundle = bundleRows || [{ ...dosing, productsPerMonth }];
     const highestPriority = rowsInBundle.map(r => r.priority || 0).sort()[0];
-    const highestPriorityBundleRow = Boolean(rowsInBundle.find(r => r.priority === highestPriority));
+    const highestPriorityBundleRow = dosing.priority === highestPriority;
 
     // Listings per month determined by highest amount of product required out of the bundle
     const listingsPerMonth = Math.max(...rowsInBundle.map(r => productsPerMonth / (r.quantity || 1)));
