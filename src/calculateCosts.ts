@@ -6,7 +6,8 @@ import {
 
 
 
-export async function calculateCostsAndRepurchases<T extends Partial<DosingCostCalculationData>>(
+export async function calculateCostsAndRepurchases<
+  T extends Partial<DosingCostCalculationData & { priority: number }>>(
   dosings: T[],
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
@@ -46,7 +47,18 @@ export async function calculateCostsAndRepurchases<T extends Partial<DosingCostC
       .map(d1 => ({ ...d1, productsPerMonth }))
       .filter(r => (r.bundleId === dosingWithListing.bundleId)) : undefined;
 
-    return await calculateCostAndRepurchase(dosingWithListing, retrieveExchangeRate, bundleRows);
+    // Only show cost for highest priority row in bundle
+    const rowsInBundle = bundleRows || [{ ...dosing, productsPerMonth }];
+    const highestPriority = rowsInBundle.map(r => r.priority || 0).sort()[0];
+    const highestPriorityBundleRow = Boolean(rowsInBundle.find(r => r.priority === highestPriority));
+
+    // Listings per month determined by highest amount of product required out of the bundle
+    const listingsPerMonth = Math.max(...rowsInBundle.map(r => productsPerMonth / (r.quantity || 1)));
+
+    return await calculateCostAndRepurchase(
+      { ...dosingWithListing, listingsPerMonth } ,
+      retrieveExchangeRate,
+      highestPriorityBundleRow);
   }));
 
   return dosingsWithCosts;
@@ -93,41 +105,37 @@ function getDosingWithListing<T extends Partial<DosingCostCalculationData>>(dosi
     userCurrencyCode: String(dosing.userCurrencyCode) });
 }
 
-export async function calculateCostAndRepurchase<T extends DosingCostCalculationData>(
+export async function calculateCostAndRepurchase<
+  T extends DosingCostCalculationData & Partial<IListingQuantity>>(
   dosing: T,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>,
-  bundleRows?: (T & { productsPerMonth: number })[])
+  bundlePriorityProduct = true)
 {
   // Represents the total amount required over a month for this row's dosage.
   const productsPerMonth = await calculateProductsPerMonth(dosing);
 
-  const rowsInBundle = bundleRows || [{ ...dosing, productsPerMonth }];
-
-  // Represents the total amount to cover all dosings of a bundle product
-  // (required in case bundle product is split across multiple protocol rows)
-  const bundleProductsPerMonth = rowsInBundle
-    .filter(r => r.listingId === dosing.listingId)
-    .reduce((pTot, br) => pTot + Number(br.productsPerMonth), 0);
-
-  // Proportion of product in this row vs. across all rows
-  const amountProportion = productsPerMonth / bundleProductsPerMonth
-
   // Listings per month determined by highest amount of product required out of the bundle
-  const listingsPerMonth = Math.max(...rowsInBundle.map(r => productsPerMonth / (r.quantity || 1)));
+  const listingsPerMonth = dosing.listingsPerMonth || productsPerMonth;
 
   const dosingWithCostPerMonth = await calculateCostPerMonth({
       ...dosing,
-      listingsPerMonth,
-      amountProportion },
+      listingsPerMonth },
     retrieveExchangeRate);
 
   const dosingWithFeesPerMonth = await calculatePerOrderFeePerMonth({
     ...dosingWithCostPerMonth,
-    listingsPerMonth, });
+    listingsPerMonth });
 
   const repurchase = calculateRepurchase(listingsPerMonth);
 
-  return { ...dosingWithFeesPerMonth, productsPerMonth, listingsPerMonth, repurchase };
+  return {
+    ...dosingWithFeesPerMonth,
+    productsPerMonth,
+    // Only show costs for highest priority row in bundle
+    costPerMonth: bundlePriorityProduct ? dosingWithFeesPerMonth.costPerMonth : undefined,
+    feesPerMonth: bundlePriorityProduct ? dosingWithFeesPerMonth.feesPerMonth : undefined,
+    listingsPerMonth: bundlePriorityProduct ? listingsPerMonth : undefined,
+    repurchase: bundlePriorityProduct ? repurchase : undefined };
 }
 
 export async function calculateProductsPerMonth(row: { productId: number, factor: number } & Amount & Dosing)
@@ -183,19 +191,7 @@ export async function calculateCostPerMonth<T>(
   // Calculate listing price with per-listing taxes & exchange rate
   const listingWithPrice = await calculateListingCost(listingQuantity, retrieveExchangeRate);
 
-  let costPerMonth = (listingWithPrice.priceWithTax * listingQuantity.listingsPerMonth) || 0;
-
-  // Apportion costPerMonth by:
-  //   - quantity of product in bundle
-  //   - the dose proportion of a bundle product in this row, where it is split across multiple rows
-  //     (for different dosing dtrategies)
-  if(listingQuantity.bundleId)
-  {
-    costPerMonth *=
-      (listingQuantity.quantity || 1) *
-      (listingQuantity.amountProportion || 1) /
-      (listingQuantity.nBundleProducts || 1);
-  }
+  const costPerMonth = (listingWithPrice.priceWithTax * listingQuantity.listingsPerMonth) || 0;
 
   return { ...listingWithPrice, costPerMonth };
 }
