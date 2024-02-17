@@ -40,20 +40,18 @@ export async function calculateCostsAndRepurchases<
         discountedPrice: undefined });
     }
 
-    // productsPerMonth represents the total amount required over a month for this row's dosage.
-    const productsPerMonth = await calculateProductsPerMonth(dosingWithListing);
-
-    const bundleRows = dosingWithListing.bundleId ? dosingsWithListings
-      .map(d1 => ({ ...d1, productsPerMonth }))
-      .filter(r => (r.bundleId === dosingWithListing.bundleId)) : undefined;
+    const bundleRows = dosingWithListing.bundleId ?
+      await Promise.all(dosingsWithListings
+        .filter(r => (r.bundleId === dosingWithListing.bundleId))
+        .map(async d1 => ({ ...d1, productsPerMonth: await calculateProductsPerMonth(d1) }))) :
+      [{ ...dosing, productsPerMonth: await calculateProductsPerMonth(dosingWithListing) }];
 
     // Only show cost for highest priority row in bundle
-    const rowsInBundle = bundleRows || [{ ...dosing, productsPerMonth }];
-    const highestPriority = rowsInBundle.map(r => r.priority || 0).sort()[0];
+    const highestPriority = bundleRows.map(r => r.priority || 0).sort()[0];
     const highestPriorityBundleRow = dosing.priority === highestPriority;
 
     // Listings per month determined by highest amount of product required out of the bundle
-    const listingsPerMonth = Math.max(...rowsInBundle.map(r => productsPerMonth / (r.quantity || 1)));
+    const listingsPerMonth = Math.max(...bundleRows.map(r => r.productsPerMonth / (r.quantity || 1)));
 
     return await calculateCostAndRepurchase(
       { ...dosingWithListing, listingsPerMonth } ,
