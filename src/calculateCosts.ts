@@ -174,16 +174,14 @@ interface IListingQuantity
   listingsPerMonth: number
 }
 
-interface IBundleQuantity
+interface BundleQuantity
 {
   bundleId?: number,
   quantity: number,
-  nBundleProducts: number,
-  amountProportion?: number,
 }
 
 export async function calculateCostPerMonth<T>(
-  listingQuantity: T & IListingCostCalculationData & Partial<IBundleQuantity> & IListingQuantity,
+  listingQuantity: T & IListingCostCalculationData & Partial<BundleQuantity> & IListingQuantity,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
   // Calculate listing price with per-listing taxes & exchange rate
@@ -233,10 +231,9 @@ export async function calculateListingCost<T>(
 
 ////////////// Per-Order Fees //////////////////////////////////////////////////////////////////////
 
-type TOrderFeeCalculationData = {
+type OrderFeeCalculationData = {
   exchangeRate: number,
   quantity?: number,
-  nBundleProducts?: number,
   deliveryPrice?: number,
   basketLimit?: number,
   priceWithTax: number,
@@ -244,7 +241,7 @@ type TOrderFeeCalculationData = {
   listingsPerMonth: number };
 
 // Accounting for per-order charges (delivery, base tax, customs), would it be cheaper?
-export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalculationData)
+export async function calculatePerOrderFeePerMonth<T>(data: T & OrderFeeCalculationData)
 {
   const maxListingsPerOrder = data.basketLimit ? Math.floor(data.basketLimit / data.priceWithTax) || 1 : 1;
   const ordersPerMonth = data.listingsPerMonth / maxListingsPerOrder;
@@ -254,8 +251,7 @@ export async function calculatePerOrderFeePerMonth<T>(data: T & TOrderFeeCalcula
   const feesPerMonth =
     ((data.deliveryPrice || 0) * data.exchangeRate + (data.baseTax || 0)) *
     ordersPerMonth *
-    (data.quantity || 1) /
-    (data.nBundleProducts || 1);
+    (data.quantity || 1);
 
   return { ...data, maxListingsPerOrder, ordersPerMonth, feesPerMonth };
 }
