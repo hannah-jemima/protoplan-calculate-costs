@@ -3,7 +3,6 @@ import {
   calculateProductsPerMonth,
   calculateListingCost,
   calculatePerOrderFeePerMonth,
-  sortDosings,
   calculateTotalCosts,
   calculateCostPerMonth } from './calculateCosts.js';
 
@@ -12,6 +11,5 @@ export {
   calculateProductsPerMonth,
   calculateListingCost as calculateListingCost,
   calculatePerOrderFeePerMonth,
-  sortDosings,
   calculateTotalCosts,
   calculateCostPerMonth };

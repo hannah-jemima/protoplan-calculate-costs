@@ -256,11 +256,6 @@ export async function calculatePerOrderFeePerMonth<T>(data: T & OrderFeeCalculat
   return { ...data, maxListingsPerOrder, ordersPerMonth, feesPerMonth };
 }
 
-export function sortDosings(dosings: { priority: number }[])
-{
-  return dosings.map(r => ({ ...r })).sort((a, b) => a.priority - b.priority);
-}
-
 
 
 
