@@ -23,14 +23,17 @@ export async function calculateCostsAndRepurchases<
 
   const dosingsWithCosts = await Promise.all(dosings.map(async dosing =>
   {
-    const dosingWithListing = getDosingWithListing(dosing);
+    const dosingWithProduct = getDosingWithProduct(dosing);
+    const dosingWithListing = dosingWithProduct ? getDosingWithListing(dosingWithProduct) : undefined;
     if(!dosingWithListing)
     {
+      const productsPerMonth = dosingWithProduct ? await calculateProductsPerMonth(dosingWithProduct) : undefined;
+
       return ({
         ...dosing,
-        productsPerMonth: undefined,
+        productsPerMonth,
         listingsPerMonth: undefined,
-        repurchase: undefined,
+        repurchase: productsPerMonth ? calculateRepurchase(productsPerMonth) : undefined,
         costPerMonth: undefined,
         maxListingsPerOrder: undefined,
         ordersPerMonth: undefined,
@@ -64,8 +67,31 @@ export async function calculateCostsAndRepurchases<
 
 function getDosingWithListing<T extends Partial<DosingCostCalculationData>>(dosing: T)
 {
+  const dosingWithProduct = getDosingWithProduct(dosing);
+
   if(
-    !dosing.listingId ||
+    !dosingWithProduct ||
+    !dosingWithProduct.listingId ||
+    dosingWithProduct.price === undefined ||
+    !dosingWithProduct.basketLimit ||
+    !dosingWithProduct.listingCurrencyCode ||
+    !dosingWithProduct.vendorCountryId)
+  {
+    return;
+  }
+
+  return ({
+    ...dosingWithProduct,
+    listingId: Number(dosingWithProduct.listingId),
+    price: Number(dosingWithProduct.price),
+    basketLimit: Number(dosingWithProduct.basketLimit),
+    vendorCountryId: Number(dosingWithProduct.vendorCountryId),
+    listingCurrencyCode: String(dosingWithProduct.listingCurrencyCode) });
+}
+
+function getDosingWithProduct<T extends Partial<DosingCostCalculationData>>(dosing: T)
+{
+  if(
     !dosing.productId ||
     dosing.dose === undefined ||
     dosing.doseUnitId === undefined ||
@@ -74,11 +100,7 @@ function getDosingWithListing<T extends Partial<DosingCostCalculationData>>(dosi
     !dosing.factor ||
     !dosing.amount ||
     !dosing.amountUnitId ||
-    dosing.price === undefined ||
-    !dosing.basketLimit ||
     !dosing.userCurrencyCode ||
-    !dosing.listingCurrencyCode ||
-    !dosing.vendorCountryId ||
     !dosing.userCountryId)
   {
     return;
@@ -86,19 +108,14 @@ function getDosingWithListing<T extends Partial<DosingCostCalculationData>>(dosi
 
   return ({
     ...dosing,
-    listingId: Number(dosing.listingId),
     productId: Number(dosing.productId),
     amount: Number(dosing.amount),
     amountUnitId: Number(dosing.amountUnitId),
-    price: Number(dosing.price),
     factor: Number(dosing.factor),
     dose: Number(dosing.dose),
     doseUnitId: Number(dosing.doseUnitId),
     dosesPerDay: Number(dosing.dosesPerDay),
     daysPerMonth: Number(dosing.daysPerMonth),
-    basketLimit: Number(dosing.basketLimit),
-    vendorCountryId: Number(dosing.vendorCountryId),
-    listingCurrencyCode: String(dosing.listingCurrencyCode),
     userCountryId: Number(dosing.userCountryId),
     userCurrencyCode: String(dosing.userCurrencyCode) });
 }
