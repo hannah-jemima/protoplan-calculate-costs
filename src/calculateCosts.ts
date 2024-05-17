@@ -170,10 +170,11 @@ function calculateRepurchase(listingsPerMonth: number)
   return (avgDaysPerMonth / listingsPerMonth);
 }
 
-interface IListingCostCalculationData
+interface ListingCostCalculationData
 {
   listingId: number,
   price: number,
+  deliveryPrice?: number,
   deliveryPerListing?: number,
   userCurrencyCode: string,
   listingCurrencyCode: string,
@@ -198,7 +199,7 @@ interface BundleQuantity
 }
 
 export async function calculateCostPerMonth<T>(
-  listingQuantity: T & IListingCostCalculationData & Partial<BundleQuantity> & IListingQuantity,
+  listingQuantity: T & ListingCostCalculationData & Partial<BundleQuantity> & IListingQuantity,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
   // Calculate listing price with per-listing taxes & exchange rate
@@ -210,7 +211,7 @@ export async function calculateCostPerMonth<T>(
 }
 
 export async function calculateListingCost<T>(
-  row: T & IListingCostCalculationData,
+  row: T & ListingCostCalculationData,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>,
   includeBaseTax = false)
 {
@@ -234,9 +235,10 @@ export async function calculateListingCost<T>(
 
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
+  // Base tax shown in user's currency
   const priceWithTax = (
-    (discountedPrice + deliveryPerListing) * (1 + taxPercent / 100) * (1 + salesTax / 100) +
-    (includeBaseTax ? baseTax : 0)) * exchangeRate;
+    (discountedPrice + deliveryPerListing) * (1 + taxPercent / 100) * (1 + salesTax / 100)) * exchangeRate +
+    (includeBaseTax ? baseTax : 0);
 
   return { ...row, exchangeRate, discountedPrice, priceWithTax };
 }
