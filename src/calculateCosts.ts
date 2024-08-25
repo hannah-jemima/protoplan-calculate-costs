@@ -266,7 +266,7 @@ type OrderFeeCalculationData = {
   protocolCurrencyCode?: string };
 
 // Accounting for per-order charges (delivery, base tax, customs), would it be cheaper?
-async function calculatePerOrderFeePerMonth<T>(
+export async function calculatePerOrderFeePerMonth<T>(
   dosing: T & OrderFeeCalculationData,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
