@@ -117,11 +117,12 @@ function getDosingWithProduct<T extends Partial<DosingCostCalculationData>>(dosi
     dosesPerDay: Number(dosing.dosesPerDay),
     daysPerMonth: Number(dosing.daysPerMonth),
     userCountryId: Number(dosing.userCountryId),
-    userCurrencyCode: String(dosing.userCurrencyCode) });
+    userCurrencyCode: String(dosing.userCurrencyCode),
+    protocolCurrencyCode: String(dosing.protocolCurrencyCode || dosing.userCurrencyCode) });
 }
 
 export async function calculateCostAndRepurchase<
-  T extends DosingCostCalculationData & Partial<IListingQuantity>>(
+  T extends DosingCostCalculationData & Partial<ListingQuantity>>(
   dosing: T,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>,
   bundlePriorityProduct = true)
@@ -139,7 +140,7 @@ export async function calculateCostAndRepurchase<
 
   const dosingWithFeesPerMonth = await calculatePerOrderFeePerMonth({
     ...dosingWithCostPerMonth,
-    listingsPerMonth });
+    listingsPerMonth }, retrieveExchangeRate);
 
   const repurchase = calculateRepurchase(listingsPerMonth);
 
@@ -177,6 +178,7 @@ interface ListingCostCalculationData
   deliveryPrice?: number,
   deliveryPerListing?: number,
   userCurrencyCode: string,
+  protocolCurrencyCode?: string;
   listingCurrencyCode: string,
   exchangeRate?: number,
   taxPercent?: number,
@@ -187,7 +189,7 @@ interface ListingCostCalculationData
   discounts?: IDiscount[],
 }
 
-interface IListingQuantity
+interface ListingQuantity
 {
   listingsPerMonth: number
 }
@@ -199,7 +201,7 @@ interface BundleQuantity
 }
 
 export async function calculateCostPerMonth<T>(
-  listingQuantity: T & ListingCostCalculationData & Partial<BundleQuantity> & IListingQuantity,
+  listingQuantity: T & ListingCostCalculationData & Partial<BundleQuantity> & ListingQuantity,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
   // Calculate listing price with per-listing taxes & exchange rate
@@ -220,9 +222,11 @@ export async function calculateListingCost<T>(
   const deliveryPerListing = row.deliveryPerListing || 0;
   const baseTax = row.baseTax || 0;
   const taxPercent = row.taxPercent || 0;
-  const userCurrencyCode = row.userCurrencyCode;
+  const userOrProtocolCurrencyCode = row.protocolCurrencyCode || row.userCurrencyCode;
   const listingCurrencyCode = row.listingCurrencyCode;
-  const exchangeRate = row.exchangeRate || await retrieveExchangeRate(listingCurrencyCode, userCurrencyCode);
+  const exchangeRate =
+    row.exchangeRate ||
+    await retrieveExchangeRate(listingCurrencyCode, userOrProtocolCurrencyCode);
   const salesTax = (
     row.vendorCountryId === 2 &&
     row.userCountryId === 2 &&
@@ -257,22 +261,30 @@ type OrderFeeCalculationData = {
   basketLimit?: number,
   priceWithTax: number,
   baseTax?: number,
-  listingsPerMonth: number };
+  listingsPerMonth: number,
+  userCurrencyCode: string,
+  protocolCurrencyCode?: string };
 
 // Accounting for per-order charges (delivery, base tax, customs), would it be cheaper?
-export async function calculatePerOrderFeePerMonth<T>(data: T & OrderFeeCalculationData)
+async function calculatePerOrderFeePerMonth<T>(
+  dosing: T & OrderFeeCalculationData,
+  retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
-  const maxListingsPerOrder = data.basketLimit ? Math.floor(data.basketLimit / data.priceWithTax) || 1 : 1;
-  const ordersPerMonth = data.listingsPerMonth / maxListingsPerOrder;
+  const maxListingsPerOrder = dosing.basketLimit ? Math.floor(dosing.basketLimit / dosing.priceWithTax) || 1 : 1;
+  const ordersPerMonth = dosing.listingsPerMonth / maxListingsPerOrder;
 
   // Delivery price shown in vendor's currency, base tax shown in user's currency
   // Fees per month calculated in user's currency
-  const feesPerMonth =
-    ((data.deliveryPrice || 0) * data.exchangeRate + (data.baseTax || 0)) *
-    ordersPerMonth *
-    (data.quantity || 1);
+  const baseTax = dosing.baseTax ? dosing.baseTax * await retrieveExchangeRate(
+    dosing.userCurrencyCode,
+    dosing.protocolCurrencyCode || dosing.userCurrencyCode) : 0;
 
-  return { ...data, maxListingsPerOrder, ordersPerMonth, feesPerMonth };
+  const feesPerMonth =
+    ((dosing.deliveryPrice || 0) * dosing.exchangeRate + baseTax) *
+    ordersPerMonth *
+    (dosing.quantity || 1);
+
+  return { ...dosing, maxListingsPerOrder, ordersPerMonth, feesPerMonth };
 }
 
 
