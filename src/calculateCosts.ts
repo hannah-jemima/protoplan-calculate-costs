@@ -285,7 +285,7 @@ export async function calculateListingCostWithFees<T>(
     (1 + taxPercent / 100) *
     (1 + salesTax / 100))  + (includeBaseTax ? baseTax : 0) + orderFeesPerMonth;
 
-  return { ...row, priceWithFees, orderFeesPerMonth };
+  return { ...row, priceWithFees, maxListingsPerOrder, orderFeesPerMonth };
 }
 
 
