@@ -237,6 +237,8 @@ export async function calculateListingCost<T>(
     .filter(d => d.applied)
     .reduce((dp, d) => dp * (100 - d.savingPercent) / 100, price) : price;
 
+  //const priceWithoutFees = discountedPrice * exchangeRate;
+
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
   // Base tax shown in user's currency
@@ -256,21 +258,24 @@ export async function calculateListingCost<T>(
 
 type OrderFeeCalculationData = {
   exchangeRate: number,
-  quantity?: number,
   deliveryPrice?: number,
   basketLimit?: number,
-  priceWithTax: number,
   baseTax?: number,
   listingsPerMonth: number,
   userCurrencyCode: string,
-  protocolCurrencyCode?: string };
+  protocolCurrencyCode?: string,
+  listingCurrencyCode: string,
+  price: number };
 
 // Accounting for per-order charges (delivery, base tax, customs), would it be cheaper?
 export async function calculatePerOrderFeePerMonth<T>(
   dosing: T & OrderFeeCalculationData,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
-  const maxListingsPerOrder = dosing.basketLimit ? Math.floor(dosing.basketLimit / dosing.priceWithTax) || 1 : 1;
+  const basketLimit =
+    dosing.basketLimit ||
+    (250 * await retrieveExchangeRate("GBP", dosing.listingCurrencyCode));
+  const maxListingsPerOrder = Math.floor(basketLimit / dosing.price);
   const ordersPerMonth = dosing.listingsPerMonth / maxListingsPerOrder;
 
   // Delivery price shown in vendor's currency, base tax shown in user's currency
@@ -281,8 +286,7 @@ export async function calculatePerOrderFeePerMonth<T>(
 
   const feesPerMonth =
     ((dosing.deliveryPrice || 0) * dosing.exchangeRate + baseTax) *
-    ordersPerMonth *
-    (dosing.quantity || 1);
+    ordersPerMonth;
 
   return { ...dosing, maxListingsPerOrder, ordersPerMonth, feesPerMonth };
 }
