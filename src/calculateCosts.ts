@@ -27,7 +27,9 @@ export async function calculateCostsAndRepurchases<
     const dosingWithListing = dosingWithProduct ? getDosingWithListing(dosingWithProduct) : undefined;
     if(!dosingWithListing)
     {
-      const productsPerMonth = dosingWithProduct ? await calculateProductsPerMonth(dosingWithProduct) : undefined;
+      const productsPerMonth = dosingWithProduct ?
+        await calculateProductsPerMonth(dosingWithProduct) :
+        undefined;
 
       return ({
         ...dosing,
@@ -75,6 +77,7 @@ function getDosingWithListing<T extends Partial<DosingCostCalculationData>>(dosi
     !dosingWithProduct.listingId ||
     dosingWithProduct.price === undefined ||
     !dosingWithProduct.basketLimit ||
+    !dosingWithProduct.vendorCurrencyCode ||
     !dosingWithProduct.listingCurrencyCode ||
     !dosingWithProduct.vendorCountryId)
   {
@@ -87,6 +90,7 @@ function getDosingWithListing<T extends Partial<DosingCostCalculationData>>(dosi
     price: Number(dosingWithProduct.price),
     basketLimit: Number(dosingWithProduct.basketLimit),
     vendorCountryId: Number(dosingWithProduct.vendorCountryId),
+    vendorCurrencyCode: String(dosingWithProduct.vendorCurrencyCode),
     listingCurrencyCode: String(dosingWithProduct.listingCurrencyCode),
     baseTax: Number(dosingWithProduct.baseTax) });
 }
@@ -103,7 +107,6 @@ function getDosingWithProduct<T extends Partial<DosingCostCalculationData>>(dosi
     !dosing.amount ||
     !dosing.amountUnitId ||
     !dosing.userCurrencyCode ||
-    !dosing.vendorCurrencyCode ||
     !dosing.userCountryId)
   {
     return;
@@ -121,7 +124,6 @@ function getDosingWithProduct<T extends Partial<DosingCostCalculationData>>(dosi
     daysPerMonth: Number(dosing.daysPerMonth),
     userCountryId: Number(dosing.userCountryId),
     userCurrencyCode: String(dosing.userCurrencyCode),
-    vendorCurrencyCode: String(dosing.vendorCurrencyCode),
     protocolCurrencyCode: String(dosing.protocolCurrencyCode || dosing.userCurrencyCode) });
 }
 
