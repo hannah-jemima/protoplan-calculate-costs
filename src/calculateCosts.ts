@@ -192,7 +192,7 @@ interface ListingCostCalculationData
   vendorCountryId: number,
   userCountryId: number,
   discounts?: IDiscount[],
-  basketLimit?: number
+  basketLimit: number
 }
 
 interface ListingQuantity
@@ -266,12 +266,9 @@ export async function calculateListingCostWithFees<T>(
     listingCurrencyCode === "USD" &&
     row.salesTax) ? row.salesTax : 0;
 
-  // basketLimit in vendor's currency
-  const basketLimit =
-    row.basketLimit ?
-    (row.basketLimit * await retrieveExchangeRate(row.vendorCurrencyCode, row.listingCurrencyCode)) :
-    (250 * await retrieveExchangeRate("GBP", row.listingCurrencyCode));
-  const maxListingsPerOrder = Math.floor(basketLimit / row.price);
+  const maxListingsPerOrder = Math.floor(
+    row.basketLimit * await retrieveExchangeRate(row.vendorCurrencyCode, row.listingCurrencyCode) /
+    row.price);
   const ordersPerMonth = row.listingsPerMonth / maxListingsPerOrder;
 
   // Delivery price shown in vendor's currency, base tax shown in user's currency
