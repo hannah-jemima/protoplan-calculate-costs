@@ -179,7 +179,6 @@ interface ListingCostCalculationData
 {
   listingId: number,
   price: number,
-  deliveryPrice?: number,
   deliveryPerListing?: number,
   userCurrencyCode: string,
   protocolCurrencyCode?: string;
@@ -187,18 +186,23 @@ interface ListingCostCalculationData
   listingCurrencyCode: string,
   exchangeRate?: number,
   taxPercent?: number,
-  baseTax: number,
   salesTax?: number,
   vendorCountryId: number,
   userCountryId: number,
   discounts?: IDiscount[],
-  basketLimit: number
 }
 
 interface ListingQuantity
 {
   listingsPerMonth: number
 }
+
+interface FeesCalculationData extends ListingCostCalculationData, ListingQuantity
+{
+  deliveryPrice?: number,
+  basketLimit: number,
+  baseTax: number
+};
 
 interface BundleQuantity
 {
@@ -207,7 +211,7 @@ interface BundleQuantity
 }
 
 export async function calculateCostPerMonth<T>(
-  listingQuantity: T & ListingCostCalculationData & Partial<BundleQuantity> & ListingQuantity,
+  listingQuantity: T & FeesCalculationData & Partial<BundleQuantity>,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
   // Calculate listing price with per-listing taxes & exchange rate
@@ -250,7 +254,7 @@ export async function calculateListingCostWithoutFees<T>(
 }
 
 export async function calculateListingCostWithFees<T>(
-  row0: T & ListingCostCalculationData & ListingQuantity,
+  row0: T & FeesCalculationData,
     retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>,
   includeBaseTax = true)
 {
