@@ -140,21 +140,17 @@ export async function calculateCostAndRepurchase<
       listingsPerMonth },
     retrieveExchangeRate);
 
-  const dosingWithFeesPerMonth = await calculatePerOrderFeePerMonth({
-    ...dosingWithCostPerMonth,
-    listingsPerMonth }, retrieveExchangeRate);
-
   const repurchase = calculateRepurchase(listingsPerMonth);
 
   return {
-    ...dosingWithFeesPerMonth,
+    ...dosingWithCostPerMonth,
     productsPerMonth,
     // Only show costs for highest priority row in bundle
     costPerMonthWithFees: bundlePriorityProduct ?
-      dosingWithFeesPerMonth.costPerMonthWithFees :
+      dosingWithCostPerMonth.costPerMonthWithFees :
       undefined,
     costPerMonthWithoutFees: bundlePriorityProduct ?
-      dosingWithFeesPerMonth.costPerMonthWithoutFees :
+      dosingWithCostPerMonth.costPerMonthWithoutFees :
       undefined,
     listingsPerMonth: bundlePriorityProduct ? listingsPerMonth : undefined,
     repurchase: bundlePriorityProduct ? repurchase : undefined };
@@ -294,51 +290,7 @@ export async function calculateListingCostWithFees<T>(
 
 
 
-
-
-
-////////////// Per-Order Fees //////////////////////////////////////////////////////////////////////
-
-type OrderFeeCalculationData = {
-  exchangeRate: number,
-  deliveryPrice?: number,
-  basketLimit?: number,
-  baseTax?: number,
-  listingsPerMonth: number,
-  userCurrencyCode: string,
-  protocolCurrencyCode?: string,
-  listingCurrencyCode: string,
-  price: number };
-
-// Accounting for per-order charges (delivery, base tax, customs), would it be cheaper?
-export async function calculatePerOrderFeePerMonth<T>(
-  dosing: T & OrderFeeCalculationData,
-  retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
-{
-  const basketLimit =
-    dosing.basketLimit ||
-    (250 * await retrieveExchangeRate("GBP", dosing.listingCurrencyCode));
-  const maxListingsPerOrder = Math.floor(basketLimit / dosing.price);
-  const ordersPerMonth = dosing.listingsPerMonth / maxListingsPerOrder;
-
-  // Delivery price shown in vendor's currency, base tax shown in user's currency
-  // Fees per month calculated in user's currency
-  const baseTax = dosing.baseTax ? dosing.baseTax * await retrieveExchangeRate(
-    dosing.userCurrencyCode,
-    dosing.protocolCurrencyCode || dosing.userCurrencyCode) : 0;
-
-  const orderFeesPerMonth =
-    ((dosing.deliveryPrice || 0) * dosing.exchangeRate + baseTax) *
-    ordersPerMonth;
-
-  return { ...dosing, maxListingsPerOrder, ordersPerMonth, orderFeesPerMonth };
-}
-
-
-
-
 /////// Total Costs ///////////////
-
 
 
 export async function calculateTotalCostsPerMonth(rows: {

@@ -1,15 +1,15 @@
 import {
   calculateCostsAndRepurchases,
   calculateProductsPerMonth,
-  calculateListingCost,
-  calculatePerOrderFeePerMonth,
-  calculateTotalCosts,
+  calculateListingCostWithFees,
+  calculateListingCostWithoutFees,
+  calculateTotalCostsPerMonth,
   calculateCostPerMonth } from './calculateCosts.js';
 
 export {
   calculateCostsAndRepurchases,
   calculateProductsPerMonth,
-  calculateListingCost as calculateListingCost,
-  calculatePerOrderFeePerMonth,
-  calculateTotalCosts,
+  calculateListingCostWithFees,
+  calculateListingCostWithoutFees,
+  calculateTotalCostsPerMonth,
   calculateCostPerMonth };
