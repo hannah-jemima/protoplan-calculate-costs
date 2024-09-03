@@ -34,12 +34,13 @@ export async function calculateCostsAndRepurchases<
         productsPerMonth,
         listingsPerMonth: undefined,
         repurchase: productsPerMonth ? calculateRepurchase(productsPerMonth) : undefined,
-        costPerMonth: undefined,
+        costPerMonthWithFees: undefined,
+        costPerMonthWithoutFees: undefined,
         maxListingsPerOrder: undefined,
         ordersPerMonth: undefined,
-        feesPerMonth: undefined,
         exchangeRate: undefined,
-        priceWithTax: undefined,
+        priceWithFees: undefined,
+        priceWithoutFees: undefined,
         discountedPrice: undefined });
     }
 
@@ -86,7 +87,8 @@ function getDosingWithListing<T extends Partial<DosingCostCalculationData>>(dosi
     price: Number(dosingWithProduct.price),
     basketLimit: Number(dosingWithProduct.basketLimit),
     vendorCountryId: Number(dosingWithProduct.vendorCountryId),
-    listingCurrencyCode: String(dosingWithProduct.listingCurrencyCode) });
+    listingCurrencyCode: String(dosingWithProduct.listingCurrencyCode),
+    baseTax: Number(dosingWithProduct.baseTax) });
 }
 
 function getDosingWithProduct<T extends Partial<DosingCostCalculationData>>(dosing: T)
@@ -148,8 +150,12 @@ export async function calculateCostAndRepurchase<
     ...dosingWithFeesPerMonth,
     productsPerMonth,
     // Only show costs for highest priority row in bundle
-    costPerMonth: bundlePriorityProduct ? dosingWithFeesPerMonth.costPerMonth : undefined,
-    feesPerMonth: bundlePriorityProduct ? dosingWithFeesPerMonth.feesPerMonth : undefined,
+    costPerMonthWithFees: bundlePriorityProduct ?
+      dosingWithFeesPerMonth.costPerMonthWithFees :
+      undefined,
+    costPerMonthWithoutFees: bundlePriorityProduct ?
+      dosingWithFeesPerMonth.costPerMonthWithoutFees :
+      undefined,
     listingsPerMonth: bundlePriorityProduct ? listingsPerMonth : undefined,
     repurchase: bundlePriorityProduct ? repurchase : undefined };
 }
@@ -182,11 +188,12 @@ interface ListingCostCalculationData
   listingCurrencyCode: string,
   exchangeRate?: number,
   taxPercent?: number,
-  baseTax?: number,
+  baseTax: number,
   salesTax?: number,
   vendorCountryId: number,
   userCountryId: number,
   discounts?: IDiscount[],
+  basketLimit?: number
 }
 
 interface ListingQuantity
@@ -205,48 +212,84 @@ export async function calculateCostPerMonth<T>(
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
   // Calculate listing price with per-listing taxes & exchange rate
-  const listingWithPrice = await calculateListingCost(listingQuantity, retrieveExchangeRate);
+  const listingWithPrice = await calculateListingCostWithFees(
+    listingQuantity,
+    retrieveExchangeRate);
 
-  const costPerMonth = (listingWithPrice.priceWithTax * listingQuantity.listingsPerMonth) || 0;
+  const costPerMonthWithoutFees = (
+    listingWithPrice.priceWithoutFees *
+    listingQuantity.listingsPerMonth) || 0;
 
-  return { ...listingWithPrice, costPerMonth };
+  const costPerMonthWithFees = (
+    listingWithPrice.priceWithFees *
+    listingQuantity.listingsPerMonth) || 0;
+
+  return { ...listingWithPrice, costPerMonthWithoutFees, costPerMonthWithFees };
 }
 
-export async function calculateListingCost<T>(
+export async function calculateListingCostWithoutFees<T>(
   row: T & ListingCostCalculationData,
-  retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>,
-  includeBaseTax = false)
+  retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
   const price = row.price;
-  // Amazon - shown on listing page in vendor's currency
-  const deliveryPerListing = row.deliveryPerListing || 0;
-  const baseTax = row.baseTax || 0;
-  const taxPercent = row.taxPercent || 0;
   const userOrProtocolCurrencyCode = row.protocolCurrencyCode || row.userCurrencyCode;
   const listingCurrencyCode = row.listingCurrencyCode;
   const exchangeRate =
     row.exchangeRate ||
     await retrieveExchangeRate(listingCurrencyCode, userOrProtocolCurrencyCode);
+
+  const discountedPrice = row.discounts ? row.discounts
+    .filter(d => d.applied)
+    .reduce((dp, d) => dp * (100 - d.savingPercent) / 100, price) : price;
+
+  // Calculate listing price with per-listing taxes & exchange rate
+  // Per-product delivery costs are also taxed
+  // Base tax shown in user's currency
+  const priceWithoutFees = discountedPrice * exchangeRate;
+
+  return { ...row, exchangeRate, discountedPrice, priceWithoutFees };
+}
+
+export async function calculateListingCostWithFees<T>(
+  row0: T & ListingCostCalculationData & ListingQuantity,
+    retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>,
+  includeBaseTax = true)
+{
+  const row = await calculateListingCostWithoutFees(row0, retrieveExchangeRate);
+
+  // Amazon - shown on listing page in vendor's currency
+  const deliveryPerListing = row.deliveryPerListing || 0;
+  const taxPercent = row.taxPercent || 0;
+  const listingCurrencyCode = row.listingCurrencyCode;
   const salesTax = (
     row.vendorCountryId === 2 &&
     row.userCountryId === 2 &&
     listingCurrencyCode === "USD" &&
     row.salesTax) ? row.salesTax : 0;
 
-  const discountedPrice = row.discounts ? row.discounts
-    .filter(d => d.applied)
-    .reduce((dp, d) => dp * (100 - d.savingPercent) / 100, price) : price;
+  const basketLimit =
+    row.basketLimit ||
+    (250 * await retrieveExchangeRate("GBP", row.listingCurrencyCode));
+  const maxListingsPerOrder = Math.floor(basketLimit / row.price);
+  const ordersPerMonth = row.listingsPerMonth / maxListingsPerOrder;
 
-  //const priceWithoutFees = discountedPrice * exchangeRate;
+  // Delivery price shown in vendor's currency, base tax shown in user's currency
+  // Fees per month calculated in user's currency
+  const baseTax = row.baseTax ? row.baseTax * await retrieveExchangeRate(
+    row.userCurrencyCode,
+    row.protocolCurrencyCode || row.userCurrencyCode) : 0;
+
+  const orderFeesPerMonth = ((row.deliveryPrice || 0) * row.exchangeRate + baseTax) * ordersPerMonth;
 
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
   // Base tax shown in user's currency
-  const priceWithTax = (
-    (discountedPrice + deliveryPerListing) * (1 + taxPercent / 100) * (1 + salesTax / 100)) * exchangeRate +
-    (includeBaseTax ? baseTax : 0);
+  const priceWithFees = (
+    (row.priceWithoutFees + deliveryPerListing * row.exchangeRate) *
+    (1 + taxPercent / 100) *
+    (1 + salesTax / 100))  + (includeBaseTax ? baseTax : 0) + orderFeesPerMonth;
 
-  return { ...row, exchangeRate, discountedPrice, priceWithTax };
+  return { ...row, priceWithFees, orderFeesPerMonth };
 }
 
 
@@ -284,11 +327,11 @@ export async function calculatePerOrderFeePerMonth<T>(
     dosing.userCurrencyCode,
     dosing.protocolCurrencyCode || dosing.userCurrencyCode) : 0;
 
-  const feesPerMonth =
+  const orderFeesPerMonth =
     ((dosing.deliveryPrice || 0) * dosing.exchangeRate + baseTax) *
     ordersPerMonth;
 
-  return { ...dosing, maxListingsPerOrder, ordersPerMonth, feesPerMonth };
+  return { ...dosing, maxListingsPerOrder, ordersPerMonth, orderFeesPerMonth };
 }
 
 
@@ -298,10 +341,12 @@ export async function calculatePerOrderFeePerMonth<T>(
 
 
 
-export async function calculateTotalCosts(rows: { costPerMonth?: number, feesPerMonth?: number }[])
+export async function calculateTotalCostsPerMonth(rows: {
+  costPerMonthWithFees?: number,
+  costPerMonthWithoutFees?: number }[])
 {
-  const costPerMonth = rows.reduce((cost, row) => cost += row.costPerMonth || 0, 0);
-  const feesPerMonth = rows.reduce((fees, row) => fees += row.feesPerMonth || 0, 0);
+  const costPerMonthWithFees = rows.reduce((cost, row) => cost += row.costPerMonthWithFees || 0, 0);
+  const costPerMonthWithoutFees = rows.reduce((cost, row) => cost += row.costPerMonthWithoutFees || 0, 0);
 
-  return { costPerMonth, feesPerMonth };
+  return { costPerMonthWithFees, costPerMonthWithoutFees };
 }
