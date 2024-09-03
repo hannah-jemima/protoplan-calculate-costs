@@ -103,6 +103,7 @@ function getDosingWithProduct<T extends Partial<DosingCostCalculationData>>(dosi
     !dosing.amount ||
     !dosing.amountUnitId ||
     !dosing.userCurrencyCode ||
+    !dosing.vendorCurrencyCode ||
     !dosing.userCountryId)
   {
     return;
@@ -120,6 +121,7 @@ function getDosingWithProduct<T extends Partial<DosingCostCalculationData>>(dosi
     daysPerMonth: Number(dosing.daysPerMonth),
     userCountryId: Number(dosing.userCountryId),
     userCurrencyCode: String(dosing.userCurrencyCode),
+    vendorCurrencyCode: String(dosing.vendorCurrencyCode),
     protocolCurrencyCode: String(dosing.protocolCurrencyCode || dosing.userCurrencyCode) });
 }
 
@@ -181,6 +183,7 @@ interface ListingCostCalculationData
   deliveryPerListing?: number,
   userCurrencyCode: string,
   protocolCurrencyCode?: string;
+  vendorCurrencyCode: string;
   listingCurrencyCode: string,
   exchangeRate?: number,
   taxPercent?: number,
@@ -263,8 +266,10 @@ export async function calculateListingCostWithFees<T>(
     listingCurrencyCode === "USD" &&
     row.salesTax) ? row.salesTax : 0;
 
+  // basketLimit in vendor's currency
   const basketLimit =
-    row.basketLimit ||
+    row.basketLimit ?
+    (row.basketLimit * await retrieveExchangeRate(row.vendorCurrencyCode, row.listingCurrencyCode)) :
     (250 * await retrieveExchangeRate("GBP", row.listingCurrencyCode));
   const maxListingsPerOrder = Math.floor(basketLimit / row.price);
   const ordersPerMonth = row.listingsPerMonth / maxListingsPerOrder;
