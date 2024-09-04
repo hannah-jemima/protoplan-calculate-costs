@@ -236,62 +236,59 @@ export async function calculateListingCostWithoutFees<T>(
   row: T & ListingCostCalculationData,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
-  const price = row.price;
-  const userOrProtocolCurrencyCode = row.protocolCurrencyCode || row.userCurrencyCode;
-  const listingCurrencyCode = row.listingCurrencyCode;
-  const exchangeRate =
+  const protocolCurrencyCode = row.protocolCurrencyCode || row.userCurrencyCode;
+  const listingToProtocolCurrency =
     row.exchangeRate ||
-    await retrieveExchangeRate(listingCurrencyCode, userOrProtocolCurrencyCode);
+    await retrieveExchangeRate(row.listingCurrencyCode, protocolCurrencyCode);
 
   const discountedPrice = row.discounts ? row.discounts
     .filter(d => d.applied)
-    .reduce((dp, d) => dp * (100 - d.savingPercent) / 100, price) : price;
+    .reduce((dp, d) => dp * (100 - d.savingPercent) / 100, row.price) : row.price;
 
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
   // Base tax shown in user's currency
-  const priceWithoutFees = discountedPrice * exchangeRate;
+  const priceWithoutFees = discountedPrice * listingToProtocolCurrency;
 
-  return { ...row, exchangeRate, discountedPrice, priceWithoutFees };
+  return { ...row, exchangeRate: listingToProtocolCurrency, discountedPrice, priceWithoutFees };
 }
 
 export async function calculateListingCostWithFees<T>(
   row0: T & FeesCalculationData,
     retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>,
-  includeBaseTax = true)
+  includeOrderFees = true)
 {
   const row = await calculateListingCostWithoutFees(row0, retrieveExchangeRate);
+  const protocolCurrencyCode = row.protocolCurrencyCode || row.userCurrencyCode;
+  const userToProtocolCurrency = await retrieveExchangeRate(row.userCurrencyCode, protocolCurrencyCode);
+  const vendorToListingCurrency = await retrieveExchangeRate(row.vendorCurrencyCode, row.listingCurrencyCode);
+  const vendorToProtocolCurrency = await retrieveExchangeRate(row.vendorCurrencyCode, protocolCurrencyCode);
 
   // Amazon - shown on listing page in vendor's currency
-  const deliveryPerListing = row.deliveryPerListing || 0;
   const taxPercent = row.taxPercent || 0;
-  const listingCurrencyCode = row.listingCurrencyCode;
   const salesTax = (
     row.vendorCountryId === 2 &&
     row.userCountryId === 2 &&
-    listingCurrencyCode === "USD" &&
+    row.listingCurrencyCode === "USD" &&
     row.salesTax) ? row.salesTax : 0;
 
   const maxListingsPerOrder = Math.floor(
-    row.basketLimit * await retrieveExchangeRate(row.vendorCurrencyCode, row.listingCurrencyCode) /
+    row.basketLimit * vendorToListingCurrency /
     row.price);
   const ordersPerMonth = row.listingsPerMonth / maxListingsPerOrder;
+  const baseTax = row.baseTax ? row.baseTax * userToProtocolCurrency : 0;
 
   // Delivery price shown in vendor's currency, base tax shown in user's currency
   // Fees per month calculated in user's currency
-  const baseTax = row.baseTax ? row.baseTax * await retrieveExchangeRate(
-    row.userCurrencyCode,
-    row.protocolCurrencyCode || row.userCurrencyCode) : 0;
-
-  const orderFeesPerMonth = ((row.deliveryPrice || 0) * row.exchangeRate + baseTax) * ordersPerMonth;
+  const orderFeesPerMonth = ((row.deliveryPrice || 0) * vendorToProtocolCurrency + baseTax) * ordersPerMonth;
 
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
   // Base tax shown in user's currency
   const priceWithFees = (
-    (row.priceWithoutFees + deliveryPerListing * row.exchangeRate) *
+    (row.priceWithoutFees + (row.deliveryPerListing || 0) * row.exchangeRate) *
     (1 + taxPercent / 100) *
-    (1 + salesTax / 100))  + (includeBaseTax ? baseTax : 0) + orderFeesPerMonth;
+    (1 + salesTax / 100)) + (includeOrderFees ? orderFeesPerMonth : 0);
 
   return { ...row, priceWithFees, maxListingsPerOrder, ordersPerMonth, orderFeesPerMonth };
 }
