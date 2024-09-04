@@ -213,23 +213,25 @@ interface BundleQuantity
 }
 
 export async function calculateCostPerMonth<T>(
-  listingQuantity: T & FeesCalculationData & ListingQuantity & Partial<BundleQuantity>,
+  dosing: T & FeesCalculationData & ListingQuantity & Partial<BundleQuantity>,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
   // Calculate listing price with per-listing taxes & exchange rate
   const listingWithPrice = await calculateListingCostWithFees(
-    listingQuantity,
+    dosing,
     retrieveExchangeRate);
+
+  const ordersPerMonth = dosing.listingsPerMonth / listingWithPrice.maxListingsPerOrder;
 
   const costPerMonthWithoutFees = (
     listingWithPrice.priceWithoutFees *
-    listingQuantity.listingsPerMonth) || 0;
+    dosing.listingsPerMonth) || 0;
 
   const costPerMonthWithFees = (
     listingWithPrice.priceWithFees *
-    listingQuantity.listingsPerMonth) || 0;
+    dosing.listingsPerMonth) || 0;
 
-  return { ...listingWithPrice, costPerMonthWithoutFees, costPerMonthWithFees };
+  return { ...listingWithPrice, costPerMonthWithoutFees, costPerMonthWithFees, ordersPerMonth };
 }
 
 export async function calculateListingCostWithoutFees<T>(
