@@ -199,7 +199,7 @@ interface ListingQuantity
   listingsPerMonth: number
 }
 
-interface FeesCalculationData extends ListingCostCalculationData, ListingQuantity
+interface FeesCalculationData extends ListingCostCalculationData
 {
   deliveryPrice?: number,
   basketLimit: number,
@@ -213,7 +213,7 @@ interface BundleQuantity
 }
 
 export async function calculateCostPerMonth<T>(
-  listingQuantity: T & FeesCalculationData & Partial<BundleQuantity>,
+  listingQuantity: T & FeesCalculationData & ListingQuantity & Partial<BundleQuantity>,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>)
 {
   // Calculate listing price with per-listing taxes & exchange rate
@@ -272,15 +272,13 @@ export async function calculateListingCostWithFees<T>(
     row.listingCurrencyCode === "USD" &&
     row.salesTax) ? row.salesTax : 0;
 
-  const maxListingsPerOrder = Math.floor(
-    row.basketLimit * vendorToListingCurrency /
-    row.price);
-  const ordersPerMonth = row.listingsPerMonth / maxListingsPerOrder;
   const baseTax = row.baseTax ? row.baseTax * userToProtocolCurrency : 0;
 
   // Delivery price shown in vendor's currency, base tax shown in user's currency
   // Fees per month calculated in user's currency
-  const orderFeesPerMonth = ((row.deliveryPrice || 0) * vendorToProtocolCurrency + baseTax) * ordersPerMonth;
+  const feesPerOrder = (row.deliveryPrice || 0) * vendorToProtocolCurrency + baseTax;
+  const maxListingsPerOrder = Math.floor(row.basketLimit * vendorToListingCurrency / row.price);
+  const orderFeesPerListing = feesPerOrder / maxListingsPerOrder;
 
   // Calculate listing price with per-listing taxes & exchange rate
   // Per-product delivery costs are also taxed
@@ -288,9 +286,9 @@ export async function calculateListingCostWithFees<T>(
   const priceWithFees = (
     (row.priceWithoutFees + (row.deliveryPerListing || 0) * row.exchangeRate) *
     (1 + taxPercent / 100) *
-    (1 + salesTax / 100)) + (includeOrderFees ? orderFeesPerMonth : 0);
+    (1 + salesTax / 100)) + (includeOrderFees ? orderFeesPerListing : 0);
 
-  return { ...row, priceWithFees, maxListingsPerOrder, ordersPerMonth, orderFeesPerMonth };
+  return { ...row, priceWithFees, maxListingsPerOrder, orderFeesPerListing };
 }
 
 
