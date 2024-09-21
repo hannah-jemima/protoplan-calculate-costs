@@ -128,7 +128,7 @@ function getDosingWithProduct<T extends Partial<DosingCostCalculationData>>(dosi
 }
 
 export async function calculateCostAndRepurchase<
-  T extends DosingCostCalculationData & Partial<ListingQuantity>>(
+  T extends DosingCostCalculationData & ListingQuantity>(
   dosing: T,
   retrieveExchangeRate: (fromCurrencyCode: string, toCurrencyCode: string) => Promise<number>,
   bundlePriorityProduct = true)
